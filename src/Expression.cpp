@@ -1,42 +1,85 @@
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
+#include <cmath>
+#include <math.h>
+#include <string.h>
 
-// #include "Expression.h"
+#include "Expression.h"
+#include "DebugUtils.h"
 
-// Node_t* NodeCreateNumber(double value, Node_t* parent) {
-//     Node_t* node = ( Node_t* ) calloc ( 1, sizeof( *node ) );
-    
-//     node->parent = parent;
+const size_t MAX_SIZE = 256;
 
-//     node->value.type  = EXPR_NUMBER;
-//     node->value.data.number = value;
+struct Variable_t {
+    char name;
+    double value;
+};
 
-//     return node;
-// }
 
-// Node_t* NodeCreateVariable( const char* name, Node_t* parent ) {
-//     Node_t* node = (Node_t*)calloc(1, sizeof(Node_t));
-//     node->parent      = parent;
+static double SearchVariable( char name, Variable_t variables[ MAX_SIZE ], 
+                                            size_t* number_of_variables ) {
+    my_assert( variables, "Null pointer on `inited_variables" );
 
-//     node->value.type  = EXPR_VARIABLE;
-//     node->value.data.var_name = strdup(name);
+    for ( size_t idx = 0; idx < *number_of_variables; idx++ ) {
+        if ( name == variables[ idx ].name ) {
+            return variables[ idx ].value;
+        }
+    }
 
-//     return node;
-// }
+    printf( "Введите значение переменной %c: ", name );
 
-// Node_t* NodeCreateOperator(OpType op, Node_t* parent) {
-//     Node_t* node = (Node_t*) calloc (1, sizeof(Node_t));
-//     node->parent      = parent;
+    // TODO: check for incorrect input
+    variables[ *number_of_variables ].name = name;
+    int scanf_result = scanf( "%lf", &( variables[ *number_of_variables ].value ) );
 
-//     node->value.type  = EXPR_OPERATOR;
-//     node->value.data.op = op;
+    return variables[ ( *number_of_variables )++ ].value;
+}
 
-//     return node;
-// }
+#define OPERATIONS( )
 
-// void CleanExprValue(ExprValue_t* value) {
-//     if ( value->type == EXPR_VARIABLE ) {
-//         free( value->data.var_name );
-//     }
-// }
+static double EvaluateNode( Node_t* node, Variable_t variables[ MAX_SIZE ], size_t number_of_variables ) {
+    if ( !node ) {
+        return 0;
+    }
+
+    switch ( node->value.type ) {
+        case NODE_NUMBER:
+            return node->value.data.number;
+        case NODE_VARIABLE:
+            return SearchVariable( node->value.data.variable, variables, &number_of_variables );
+        case NODE_OPERATION: {
+            char op = node->value.data.operation;
+
+            double L = EvaluateNode( node->left, variables, number_of_variables );
+            double R = EvaluateNode( node->right, variables, number_of_variables );
+
+            switch ( op ) {
+                case '+': return L + R;
+                case '-': return L - R;
+                case '*': return L * R;
+                case '/': return L / R;
+
+                default:
+                    PRINT_ERROR( "Ошибка: неизвестная операция '%c'\n", op );
+                    return NAN;
+            }
+        }
+        
+        case NODE_UNKNOWN:
+        default:
+            PRINT_ERROR( "Ошибка: такая нода вообще не должна была здесь появиться!!! \n" );
+            return NAN;
+
+    }
+
+    return NAN;
+}
+
+double EvaluateTree( const Tree_t* tree ) {
+    my_assert( tree, "Null pointer on `tree`" );
+
+    double result = 0;
+    Variable_t inited_variables[ MAX_SIZE ] = {};
+    size_t size = 0;
+
+    result = EvaluateNode( tree->root, inited_variables, size );
+
+    return result;
+}

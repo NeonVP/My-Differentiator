@@ -35,6 +35,6 @@
     #define ON_DEBUG(...)
 #endif //_DEBUG
 
-#define PRINT_ERROR( format, ... ) fprintf( stderr, COLOR_BRIGHT_RED format, ##__VA_ARGS__ );
+#define PRINT_ERROR( format, ... ) fprintf( stderr, COLOR_BRIGHT_RED format COLOR_RESET, ##__VA_ARGS__ );
 
 #endif //ERRORS_H
