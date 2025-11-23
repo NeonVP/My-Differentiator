@@ -1,9 +1,9 @@
 digraph {
 	splines=line;
-	node_7B918B1E0010 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
+	node_6E19627E0010 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
 	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
 		<TR> 
-			<TD PORT="idx" BGCOLOR="#BB2B0D5A">idx=0x7B918B1E0010</TD> 
+			<TD PORT="idx" BGCOLOR="#A41B58E1">idx=0x6E19627E0010</TD> 
 		</TR> 
 		<TR> 
 			<TD PORT="parent" BGCOLOR="#6522DF69">parent=0x0</TD> 
@@ -18,23 +18,23 @@ digraph {
 			<TD> 
 				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
 					<TR> 
-						<TD PORT="left" BGCOLOR="#92B6CFB7">Да - 7B918B1E0050</TD> 
+						<TD PORT="left" BGCOLOR="#8D869A0C">Да - 6E19627E0050</TD> 
 						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#E8108880">Нет - 7B918B1E0090</TD> 
+						<TD PORT="right" BGCOLOR="#F720DD3B">Нет - 6E19627E0090</TD> 
 					</TR> 
 				</TABLE> 
 			</TD> 
 		</TR> 
 	</TABLE> 
 	>]; 
-	node_7B918B1E0010:left:s->node_7B918B1E0050
-	node_7B918B1E0050 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
+	node_6E19627E0010:left:s->node_6E19627E0050
+	node_6E19627E0050 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
 	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
 		<TR> 
-			<TD PORT="idx" BGCOLOR="#92B6CFB7">idx=0x7B918B1E0050</TD> 
+			<TD PORT="idx" BGCOLOR="#8D869A0C">idx=0x6E19627E0050</TD> 
 		</TR> 
 		<TR> 
-			<TD PORT="parent" BGCOLOR="#BB2B0D5A">parent=0x7B918B1E0010</TD> 
+			<TD PORT="parent" BGCOLOR="#A41B58E1">parent=0x6E19627E0010</TD> 
 		</TR> 
 		<TR> 
 			<TD PORT="type">type=VARIABLE</TD> 
@@ -55,14 +55,14 @@ digraph {
 		</TR> 
 	</TABLE> 
 	>]; 
-	node_7B918B1E0010:right:s->node_7B918B1E0090
-	node_7B918B1E0090 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
+	node_6E19627E0010:right:s->node_6E19627E0090
+	node_6E19627E0090 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
 	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
 		<TR> 
-			<TD PORT="idx" BGCOLOR="#E8108880">idx=0x7B918B1E0090</TD> 
+			<TD PORT="idx" BGCOLOR="#F720DD3B">idx=0x6E19627E0090</TD> 
 		</TR> 
 		<TR> 
-			<TD PORT="parent" BGCOLOR="#BB2B0D5A">parent=0x7B918B1E0010</TD> 
+			<TD PORT="parent" BGCOLOR="#A41B58E1">parent=0x6E19627E0010</TD> 
 		</TR> 
 		<TR> 
 			<TD PORT="type">type=NUMBER</TD> 
@@ -74,23 +74,23 @@ digraph {
 			<TD> 
 				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
 					<TR> 
-						<TD PORT="left" BGCOLOR="#C18D4A6D">Да - 7B918B1E00D0</TD> 
+						<TD PORT="left" BGCOLOR="#DEBD1FD6">Да - 6E19627E00D0</TD> 
 						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#1D5C06EE">Нет - 7B918B1E0110</TD> 
+						<TD PORT="right" BGCOLOR="#26C5355">Нет - 6E19627E0110</TD> 
 					</TR> 
 				</TABLE> 
 			</TD> 
 		</TR> 
 	</TABLE> 
 	>]; 
-	node_7B918B1E0090:left:s->node_7B918B1E00D0
-	node_7B918B1E00D0 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
+	node_6E19627E0090:left:s->node_6E19627E00D0
+	node_6E19627E00D0 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
 	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
 		<TR> 
-			<TD PORT="idx" BGCOLOR="#C18D4A6D">idx=0x7B918B1E00D0</TD> 
+			<TD PORT="idx" BGCOLOR="#DEBD1FD6">idx=0x6E19627E00D0</TD> 
 		</TR> 
 		<TR> 
-			<TD PORT="parent" BGCOLOR="#E8108880">parent=0x7B918B1E0090</TD> 
+			<TD PORT="parent" BGCOLOR="#F720DD3B">parent=0x6E19627E0090</TD> 
 		</TR> 
 		<TR> 
 			<TD PORT="type">type=VARIABLE</TD> 
@@ -111,14 +111,14 @@ digraph {
 		</TR> 
 	</TABLE> 
 	>]; 
-	node_7B918B1E0090:right:s->node_7B918B1E0110
-	node_7B918B1E0110 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
+	node_6E19627E0090:right:s->node_6E19627E0110
+	node_6E19627E0110 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
 	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
 		<TR> 
-			<TD PORT="idx" BGCOLOR="#1D5C06EE">idx=0x7B918B1E0110</TD> 
+			<TD PORT="idx" BGCOLOR="#26C5355">idx=0x6E19627E0110</TD> 
 		</TR> 
 		<TR> 
-			<TD PORT="parent" BGCOLOR="#E8108880">parent=0x7B918B1E0090</TD> 
+			<TD PORT="parent" BGCOLOR="#F720DD3B">parent=0x6E19627E0090</TD> 
 		</TR> 
 		<TR> 
 			<TD PORT="type">type=NUMBER</TD> 

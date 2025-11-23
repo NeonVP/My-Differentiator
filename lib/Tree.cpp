@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,6 +205,8 @@ static void NodeDumpRecursively( const Node_t* node, FILE* dot_stream ) {
 
         DOT_PRINT( "\t</TABLE> \n" );
         DOT_PRINT( "\t>]; \n" );
+
+    // TODO: rework this for the differentiator
     #else
         DOT_PRINT( "\tnode_%lX [shape=plaintext; label=<\n", ( uintptr_t ) node );
 
@@ -269,7 +270,6 @@ void NodeGraphicDump( const Node_t* node, const char* image_path_name, ... ) {
     system( cmd );
 }
 
-// ---- исправленный TreeSaveNode (без лишних ведущих пробелов) ----
 static void TreeSaveNode( const Node_t* node, FILE* stream, bool* error ) {
     if ( !node ) {
         fprintf( stream, "nil" );
@@ -280,7 +280,7 @@ static void TreeSaveNode( const Node_t* node, FILE* stream, bool* error ) {
 
     switch ( node->value.type ) {
         case NODE_NUMBER:
-            fprintf( stream, "%lf ", node->value.data.number );
+            fprintf( stream, "%lg ", node->value.data.number );
             break;
         case NODE_VARIABLE:
             fprintf( stream, "%c ", node->value.data.variable );
@@ -343,21 +343,12 @@ static OperationType IsItOpeartion( const char c ) {
 
 #undef INIT_OP_SWITCH_CASE
 
-// ---- более надёжный NodeParseValue ----
 static TreeData_t NodeParseValue( char** current_position ) {
     my_assert( current_position, "Null pointer on `current position`" );
 
     TreeData_t value = {};
     CleanSpace( current_position );
 
-    // читаем возможный 'nil'
-    if ( strncmp( *current_position, "nil", 3 ) == 0 ) {
-        value.type = NODE_UNKNOWN; // caller должен обработать как отсутствие узла
-        ( *current_position ) += 3;
-        return value;
-    }
-
-    // попытка прочитать число (поддерживает знак и точку)
     int read_bytes = 0;
     if ( sscanf( *current_position, " %lf%n", &( value.data.number ), &read_bytes ) >= 1 ) {
         value.type = NODE_NUMBER;
@@ -365,15 +356,13 @@ static TreeData_t NodeParseValue( char** current_position ) {
         return value;
     }
 
-    // если буква => переменная
-    if ( isalpha( ( unsigned char ) **current_position ) ) {
+    if ( isalpha( **current_position ) ) {
         value.type = NODE_VARIABLE;
         value.data.variable = **current_position;
         ( *current_position )++;
         return value;
     }
 
-    // если один из операторов
     OperationType op = IsItOpeartion( **current_position );
     if ( op != OP_NOPE ) {
         value.type = NODE_OPERATION;
@@ -386,18 +375,15 @@ static TreeData_t NodeParseValue( char** current_position ) {
     return value;
 }
 
-// ---- более стабильный TreeParseNode (с CleanSpace в нужных местах) ----
 static Node_t* TreeParseNode( Tree_t* tree, bool* error ) {
     CleanSpace( &(tree->current_position) );
 
     if ( *( tree->current_position ) == '(' ) {
-        tree->current_position++; // съели '('
+        tree->current_position++;
         CleanSpace( &(tree->current_position) );
 
         TreeData_t value = NodeParseValue( &( tree->current_position ) );
         if ( value.type == NODE_UNKNOWN ) {
-            // возможно сюда попадём, если NodeParseValue встретил 'nil' => это должно быть обработано выше,
-            // но если действительно неизвестный токен — ставим ошибку
             *error = true;
             return NULL;
         }
@@ -409,7 +395,6 @@ static Node_t* TreeParseNode( Tree_t* tree, bool* error ) {
         if ( strncmp( tree->current_position, "nil", 3 ) != 0 )
             node->left = TreeParseNode( tree, error );
         else {
-            // left == nil; advance parser
             tree->current_position += 3;
             node->left = NULL;
         }
