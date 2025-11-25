@@ -23,8 +23,8 @@
 #define COLOR_BRIGHT_CYAN    "\x1b[96m"
 #define COLOR_BRIGHT_WHITE   "\x1b[97m"
 
-#define COLOR_RESET     "\x1b[0m"
+#define COLOR_RESET "\x1b[0m"
 
-#define DEBUG            "\x1b[35m[DEBUG]\x1b[0m"
+#define DEBUG "\x1b[35m[DEBUG] \x1b[0m"
 
 #endif // COLORS_H

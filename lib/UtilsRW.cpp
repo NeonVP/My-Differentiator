@@ -2,8 +2,11 @@
 #include <assert.h>
 
 #include "UtilsRW.h"
+#include "DebugUtils.h"
 
 int MakeDirectory( const char* path ) {
+    PRINT( "I'm going to create directory `%s` \n", path );
+    
     if ( mkdir( path, 0700 ) == -1 ) {
         if ( errno == EEXIST ) {
             return 0;

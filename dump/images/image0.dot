@@ -1,40 +1,12 @@
 digraph {
 	splines=line;
-	node_75FB9F5E0050 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
+	node_7515A6BE0050 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
 	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
 		<TR> 
-			<TD PORT="idx" BGCOLOR="#568BCEF4">idx=0x75FB9F5E0050</TD> 
+			<TD PORT="idx" BGCOLOR="#DA5E398A">idx=0x7515A6BE0050</TD> 
 		</TR> 
 		<TR> 
-			<TD PORT="parent" BGCOLOR="#6522DF69">parent=0x0</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="type">type=NUMBER</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="value">value=*</TD> 
-		</TR> 
-		<TR> 
-			<TD> 
-				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
-					<TR> 
-						<TD PORT="left" BGCOLOR="#2C2D89C3">Да - 75FB9F5E0090</TD> 
-						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#5B04B2E">Нет - 75FB9F5E00D0</TD> 
-					</TR> 
-				</TABLE> 
-			</TD> 
-		</TR> 
-	</TABLE> 
-	>]; 
-	node_75FB9F5E0050:left:s->node_75FB9F5E0090
-	node_75FB9F5E0090 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
-	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
-		<TR> 
-			<TD PORT="idx" BGCOLOR="#2C2D89C3">idx=0x75FB9F5E0090</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="parent" BGCOLOR="#568BCEF4">parent=0x75FB9F5E0050</TD> 
+			<TD PORT="parent" BGCOLOR="#F3C3FB67">parent=0x7515A6BE0010</TD> 
 		</TR> 
 		<TR> 
 			<TD PORT="type">type=VARIABLE</TD> 
@@ -46,93 +18,9 @@ digraph {
 			<TD> 
 				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
 					<TR> 
-						<TD PORT="left" BGCOLOR="#B6B4B4">0 - 0</TD> 
+						<TD PORT="left" BGCOLOR="#B6B4B4" ALIGN="CENTER">0</TD> 
 						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#B6B4B4">0 - 0</TD> 
-					</TR> 
-				</TABLE> 
-			</TD> 
-		</TR> 
-	</TABLE> 
-	>]; 
-	node_75FB9F5E0050:right:s->node_75FB9F5E00D0
-	node_75FB9F5E00D0 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
-	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
-		<TR> 
-			<TD PORT="idx" BGCOLOR="#5B04B2E">idx=0x75FB9F5E00D0</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="parent" BGCOLOR="#568BCEF4">parent=0x75FB9F5E0050</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="type">type=NUMBER</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="value">value=+</TD> 
-		</TR> 
-		<TR> 
-			<TD> 
-				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
-					<TR> 
-						<TD PORT="left" BGCOLOR="#D96107AD">Да - 75FB9F5E0110</TD> 
-						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#F0FCC540">Нет - 75FB9F5E0150</TD> 
-					</TR> 
-				</TABLE> 
-			</TD> 
-		</TR> 
-	</TABLE> 
-	>]; 
-	node_75FB9F5E00D0:left:s->node_75FB9F5E0110
-	node_75FB9F5E0110 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
-	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
-		<TR> 
-			<TD PORT="idx" BGCOLOR="#D96107AD">idx=0x75FB9F5E0110</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="parent" BGCOLOR="#5B04B2E">parent=0x75FB9F5E00D0</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="type">type=VARIABLE</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="value">value=y</TD> 
-		</TR> 
-		<TR> 
-			<TD> 
-				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
-					<TR> 
-						<TD PORT="left" BGCOLOR="#B6B4B4">0 - 0</TD> 
-						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#B6B4B4">0 - 0</TD> 
-					</TR> 
-				</TABLE> 
-			</TD> 
-		</TR> 
-	</TABLE> 
-	>]; 
-	node_75FB9F5E00D0:right:s->node_75FB9F5E0150
-	node_75FB9F5E0150 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
-	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
-		<TR> 
-			<TD PORT="idx" BGCOLOR="#F0FCC540">idx=0x75FB9F5E0150</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="parent" BGCOLOR="#5B04B2E">parent=0x75FB9F5E00D0</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="type">type=NUMBER</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="value">value=6</TD> 
-		</TR> 
-		<TR> 
-			<TD> 
-				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
-					<TR> 
-						<TD PORT="left" BGCOLOR="#B6B4B4">0 - 0</TD> 
-						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#B6B4B4">0 - 0</TD> 
+						<TD PORT="right" BGCOLOR="#B6B4B4" ALIGN="CENTER">0</TD> 
 					</TR> 
 				</TABLE> 
 			</TD> 

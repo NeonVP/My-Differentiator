@@ -1,4 +1,4 @@
-#include "Expression.h"
+#include "Differentiator.h"
 
 int main() {
     Tree_t* tree = TreeCtor();
@@ -8,5 +8,9 @@ int main() {
 
     printf( "Результат: %lg \n", EvaluateTree( tree ) );
 
+    Tree_t* d_tree = DifferentiateTree( tree, 'x' );
+    // TreeDump( d_tree, "After differentiation" );
+
     TreeDtor( &tree, NULL );
+    // TreeDtor( &d_tree, NULL );
 }
