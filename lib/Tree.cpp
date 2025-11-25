@@ -50,8 +50,14 @@ void TreeDtor( Tree_t **tree, void  ( *clean_function ) ( TreeData_t value, Tree
     free( ( *tree )->buffer );
 
 #ifdef _DEBUG
-    free( ( *tree )->logging.img_log_path );
-    free( ( *tree )->logging.log_path );
+    if ( ( *tree )->logging.img_log_path ) free( ( *tree )->logging.img_log_path );
+    if ( ( *tree )->logging.log_path )     free( ( *tree )->logging.log_path );
+    
+    if ( ( *tree )->logging.log_file ) {
+        int result_of_fclose = fclose( ( *tree )->logging.log_file  );
+        if ( result_of_fclose )
+            PRINT_ERROR( "Error closing file `dump/index.html` \n" );
+    }
 #endif
 
     free( *tree );
@@ -108,9 +114,6 @@ Node_t* NodeCopy( Node_t* node ) {
 
     Node_t* new_node = NodeCreate( node->value, NULL );
 
-    new_node->left  = node->left;
-    new_node->right = node->right;
-
     return new_node;
 }
 
@@ -146,7 +149,7 @@ void TreeDump( Tree_t* tree, const char* format_string, ... ) {
 
     if ( tree->current_position ) {
         PRINT_HTML( "<H4>Text from buffer ( from current position )</H4> \n" );
-        PRINT_HTML( "<pre>%s</pre> \n", tree->current_position )
+        PRINT_HTML( "<pre>`%s`</pre> \n", tree->current_position )
     }
 
     NodeGraphicDump(
@@ -349,13 +352,13 @@ void TreeSaveToFile( const Tree_t* tree, const char* filename ) {
 
     bool error = false;
     TreeSaveNode( tree->root, file_with_base, &error );
-    if ( error ) PRINT_ERROR( "Ошибка записи дерева в файл!!!\n" );
+    if ( error ) PRINT_ERROR( "Error writing a tree to a file!!!\n" );
 
     int result = fclose( file_with_base );
     assert( !result && "Error while closing file with tree" );
 
     if ( !error )
-        fprintf( stdout, "База Акинатора была сохранена в %s\n", filename );
+        fprintf( stdout, "The tree was saved in %s\n", filename );
 }
 
 static void CleanSpace( char** position ) {

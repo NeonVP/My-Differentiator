@@ -15,7 +15,7 @@ struct Variable_t {
 static double EvaluateNode( Node_t* node, Variable_t variables[ MAX_SIZE ], size_t number_of_variables );
 static double SearchVariable( char name, Variable_t variables[ MAX_SIZE ], size_t* number_of_variables );
 
-double EvaluateTree( const Tree_t* tree ) {
+double EvaluateTree( Tree_t* tree ) {
     my_assert( tree, "Null pointer on `tree`" );
 
     double result = 0;
@@ -24,6 +24,7 @@ double EvaluateTree( const Tree_t* tree ) {
 
     result = EvaluateNode( tree->root, inited_variables, size );
 
+    TreeDump( tree, "Result of evaluate: %lg", result );
     return result;
 }
 

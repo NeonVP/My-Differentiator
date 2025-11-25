@@ -3,6 +3,6 @@
 
 #include "Tree.h"
 
-double EvaluateTree( const Tree_t* tree );
+double EvaluateTree( Tree_t* tree );
 
 #endif

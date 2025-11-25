@@ -1,7 +1,7 @@
-#include <stdio.h>
-
 #ifndef TREE_H
 #define TREE_H
+
+#include <stdio.h>
 
 #ifdef _LINUX
 #include <linux/limits.h>
@@ -70,6 +70,15 @@ struct Node_t {
 struct Tree_t {
     Node_t* root;
 
+    /* TODO: from Egor
+    I think that it's bad idea to store buffer with initial expression
+    in Tree struct. You should make Differentiator struct, that will contain:
+    Tree_t *tree;
+    ExprInfo_t *expr_info;
+    e.t.c
+    because tree shouldn't provide any functional that implements any interaction with
+    initial expression, but differentiator should.
+    */
     char* buffer;
     char* current_position;
     off_t buffer_size;
@@ -83,16 +92,6 @@ struct Tree_t {
 
     size_t image_number;
 #endif
-};
-
-enum TreeStatus_t {
-    SUCCESS = 0,
-    FAIL    = 1
-};
-
-enum DirectionType {
-    RIGHT = 0,
-    LEFT  = 1
 };
 
 Tree_t* TreeCtor();
