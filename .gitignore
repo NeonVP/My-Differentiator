@@ -1,6 +1,9 @@
 *.json
-diff
-diff-debug
 /.cache
 /dump
+/tex
 Logging.*
+base.txt
+diff-debug
+diff-release
+diff-simple-dump
