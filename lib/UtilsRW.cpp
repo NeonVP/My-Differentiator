@@ -25,3 +25,27 @@ off_t DetermineTheFileSize( const char* file_name ) {
     return file_stat.st_size;
 }
 
+
+char* ReadToBuffer( const char* filename ) {
+    off_t file_size = DetermineTheFileSize( filename );
+    if ( file_size == 0 ) {
+        PRINT_ERROR( "The file `%s` is empty!", filename );
+    }
+
+    char* buffer = ( char* ) calloc ( ( size_t ) ( file_size + 1 ), sizeof( *buffer ) );
+    assert( buffer && "Memory allocation error for `buffer`" );
+
+    FILE* file = fopen( filename, "r" );
+    assert( file && "Error opening file" );
+
+    size_t result_of_read = fread( buffer, sizeof( char ), ( size_t ) file_size, file );
+    assert( result_of_read != 0 && "Fail read to buffer \n" );
+
+    int result_of_fclose = fclose( file );
+    if ( result_of_fclose ) {
+        PRINT_ERROR( "Error closing file `%s` \n", filename );
+    }
+
+    return buffer;
+}
+

@@ -1,8 +1,46 @@
 #ifndef DIFFERENTIATOR_H
 #define DIFFERENTIATOR_H
 
-#include "Expression.h"
+#include "Tree.h"
 
-Tree_t* DifferentiateTree( Tree_t* tree, char independent_variable );
+
+#ifdef _DEBUG
+struct Log_t {
+    FILE* log_file;
+    char* log_path;
+    char* img_log_path;
+    size_t image_number;
+};
+
+enum DumpMode {
+    DUMP_ORIGINAL       = 0,
+    DUMP_DIFFERENTIATED = 1
+};
+#endif
+
+struct Differentiator_t {
+    Tree_t* expr_tree;
+    Tree_t* diff_tree;
+
+    struct Expression_t {
+        char* buffer;
+        char* current_position;
+    } expr_info;
+
+
+#ifdef _DEBUG
+    struct Log_t logging;
+#endif
+};
+
+Differentiator_t* DifferentiatorCtor( const char* expr_filename );
+void DifferentiatorDtor( Differentiator_t** diff );
+
+double EvaluateTree( Tree_t* tree );
+
+Tree_t* DifferentiateExpression( Differentiator_t* diff, const char independent_variable, const int order );
+
+void DifferentiatiorDump( Differentiator_t* diff, enum DumpMode mode, const char* format, ... );
+void TreeDumpLatex( Tree_t* tree, const char* filename );
 
 #endif

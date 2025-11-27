@@ -1,15 +1,13 @@
 #include "Differentiator.h"
 
 int main() {
-    Tree_t* tree = TreeCtor();
+    const char* filename = "base.txt";
+    Differentiator_t* diff = DifferentiatorCtor( filename );
+    DifferentiatiorDump( diff, DUMP_ORIGINAL, "After creation" );
+    // printf( "Результат: %lg \n", EvaluateTree( diff->expr_tree ) );
 
-    TreeReadFromFile( tree, "base.txt" );
-    // TreeSaveToFile( tree, "base.txt" );
+    DifferentiateExpression( diff, 'x', 1 );
+    DifferentiatiorDump( diff, DUMP_DIFFERENTIATED, "After differentiation" );
 
-    // printf( "Результат: %lg \n", EvaluateTree( tree ) );
-
-    Tree_t* d_tree = DifferentiateTree( tree, 'x' );
-
-    TreeDtor( &tree, NULL );
-    TreeDtor( &d_tree, NULL );
+    DifferentiatorDtor( &diff );
 }

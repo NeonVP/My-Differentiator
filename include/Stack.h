@@ -8,7 +8,7 @@
 
 #include "Colors.h"
 
-typedef int StackData_t;
+typedef Tree_t* StackData_t;
 
 #define PASS
 #define printerr(str) fprintf( stderr, COLOR_RED "%s" COLOR_RESET, str );
@@ -46,7 +46,7 @@ const int canary = 0xbabe;
 #define DEBUG_IN_FUNC(...) __VA_ARGS__
 #endif //_DEBUG
 
-const int poison = 777;
+const StackData_t poison = ( StackData_t ) 777;
 const int large_capacity = 10000000;
 
 enum ErrStack_t {
@@ -69,20 +69,22 @@ struct VarInfo {
 };
 
 struct Stack_t {
-    ON_CANARY( int canary1 = canary; )
+    ON_CANARY( int canary1; )
 
-    StackData_t* data = 0;
-    size_t size       = 0;
-    size_t capacity   = 0;
+    StackData_t* data;
+    size_t size;
+    size_t capacity;
 
-    ON_DEBUG( VarInfo varInfo = {}; )
-    ON_CANARY( int canary2 = canary; )
+    ON_DEBUG( VarInfo varInfo; )
+    ON_CANARY( int canary2; )
 };
 
-void         StackCtor( Stack_t* stk, size_t size );
-void         StackDtor( Stack_t* stk );
-void         StackPush( Stack_t* stk, int element );
-StackData_t  StackPop ( Stack_t* stk );
+typedef void ( *StackElemDtor ) ( StackData_t elem );
+
+Stack_t* StackCtor( size_t size );
+void     StackDtor( Stack_t** stk );
+void     StackPush( Stack_t* stk, StackData_t element );
+void     StackPop ( Stack_t* stk, StackElemDtor dtor );
 
 void StackRealloc( Stack_t* stk, size_t capacity );
 void StackToPoison( Stack_t* stk );

@@ -1,30 +1,16 @@
 digraph {
 	splines=line;
-	node_7532BE9E0050 [shape=plaintext; style=filled; color=black; fillcolor="#B6B4B4"; label=< 
-	<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" ALIGN="CENTER"> 
-		<TR> 
-			<TD PORT="idx" BGCOLOR="#B0877778">idx=0x7532BE9E0050</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="parent" BGCOLOR="#991AB595">parent=0x7532BE9E0010</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="type">type=VARIABLE</TD> 
-		</TR> 
-		<TR> 
-			<TD PORT="value">value=x</TD> 
-		</TR> 
-		<TR> 
-			<TD> 
-				<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2" ALIGN="CENTER"> 
-					<TR> 
-						<TD PORT="left" BGCOLOR="#B6B4B4" ALIGN="CENTER">0</TD> 
-						<TD><FONT POINT-SIZE="10">│</FONT></TD> 
-						<TD PORT="right" BGCOLOR="#B6B4B4" ALIGN="CENTER">0</TD> 
-					</TR> 
-				</TABLE> 
-			</TD> 
-		</TR> 
-	</TABLE> 
-	>]; 
+	node_0x72a0e09e0010 [style=filled, fillcolor="#F5B041", label="log"]; 
+	node_0x72a0e09e0010 -> node_0x72a0e09e0050;
+	node_0x72a0e09e0050 [style=filled, fillcolor="#F5B041", label="*"]; 
+	node_0x72a0e09e0050 -> node_0x72a0e09e0090;
+	node_0x72a0e09e0090 [style=filled, fillcolor="#82E0AA", label="x"]; 
+	node_0x72a0e09e0050 -> node_0x72a0e09e00d0;
+	node_0x72a0e09e00d0 [style=filled, fillcolor="#F5B041", label="+"]; 
+	node_0x72a0e09e00d0 -> node_0x72a0e09e0110;
+	node_0x72a0e09e0110 [style=filled, fillcolor="#82E0AA", label="x"]; 
+	node_0x72a0e09e00d0 -> node_0x72a0e09e0150;
+	node_0x72a0e09e0150 [style=filled, fillcolor="#5DADE2", label="10"]; 
+	node_0x72a0e09e0010 -> node_0x72a0e09e0190;
+	node_0x72a0e09e0190 [style=filled, fillcolor="#5DADE2", label="10"]; 
 }

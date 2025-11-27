@@ -2,8 +2,9 @@
 #include <math.h>
 #include <string.h>
 
-#include "Expression.h"
+#include "Differentiator.h"
 #include "DebugUtils.h"
+#include "Tree.h"
 
 const size_t MAX_SIZE = 256;
 
@@ -24,7 +25,6 @@ double EvaluateTree( Tree_t* tree ) {
 
     result = EvaluateNode( tree->root, inited_variables, size );
 
-    TreeDump( tree, "Result of evaluate: %lg", result );
     return result;
 }
 
@@ -43,24 +43,39 @@ static double EvaluateNode( Node_t* node, Variable_t variables[ MAX_SIZE ], size
             double R = EvaluateNode( node->right, variables, number_of_variables );
 
             switch ( node->value.data.operation ) {
-                case OP_ADD: return L + R;
-                case OP_SUB: return L - R;
-                case OP_MUL: return L * R;
-                case OP_DIV: return L / R;
-                case OP_SIN: return sin( L );
-                case OP_COS: return cos( L );
-                case OP_TAN: return tan( L );
-                case OP_POW: return pow( L, R );
+                case OP_ADD:     return L + R;
+                case OP_SUB:     return L - R;
+                case OP_MUL:     return L * R;
+                case OP_DIV:     return L / R;
+                case OP_POW:     return pow( L, R );
+                case OP_LOG:     return log(R) / log(L);
+                
+                case OP_SIN:     return sin(L);
+                case OP_COS:     return cos(L);
+                case OP_TAN:     return tan(L);
+                case OP_CTAN:    return 1.0 / tan(L);
+
+                case OP_SH:      return sinh(L);
+                case OP_CH:      return cosh(L);
+
+                case OP_ARCSIN:  return asin(L);
+                case OP_ARCCOS:  return acos(L);
+                case OP_ARCTAN:  return atan(L);
+                case OP_ARCCTAN: return atan( 1.0 / L );
+
+                case OP_ARSINH:  return asinh(L);
+                case OP_ARCH:    return acosh(L);
+                case OP_ARTANH:  return atanh(L);
 
                 default:
-                    PRINT_ERROR( "Ошибка: неизвестная операция '%s'\n", operations_txt[ node->value.data.operation ] );
+                    PRINT_ERROR( "Error: unknown operation '%s'\n", operations_txt[ node->value.data.operation ] );
                     return NAN;
             }
         }
         
         case NODE_UNKNOWN:
         default:
-            PRINT_ERROR( "Ошибка: такая нода вообще не должна была здесь появиться!!! \n" );
+            PRINT_ERROR( "Error: invalid node in the calculation! \n" );
             return NAN;
     }
 }
@@ -74,11 +89,11 @@ static double SearchVariable( char name, Variable_t variables[ MAX_SIZE ], size_
         }
     }
 
-    printf( "Введите значение переменной %c: ", name );
+    printf( "Input the valube of variable `%c`: ", name );
 
-    // TODO: check for incorrect input
-    variables[ *number_of_variables ].name = name;
-    scanf( "%lf", &( variables[ *number_of_variables ].value ) );
+    if ( scanf( "%lf", &( variables[ *number_of_variables ].value ) ) != 1 ) {
+        PRINT_ERROR( "Invalid input for variable %c. Try again, pls: ", name );
+    }
 
     return variables[ ( *number_of_variables )++ ].value;
 }
