@@ -1,1 +1,0 @@
-( log ( * ( x nil nil ) ( + ( x nil nil ) ( 10 nil nil ) ) ) ( 10 nil nil ) )
