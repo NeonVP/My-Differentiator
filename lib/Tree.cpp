@@ -93,6 +93,8 @@ Node_t* NodeCopy( Node_t* node) {
     return new_node;
 }
 
+#ifdef _SIMPLIFIED_DUMP
+#else
 static uint32_t my_crc32_ptr( const void *ptr ) {
     uintptr_t val = ( uintptr_t ) ptr;
     uint32_t  crc = 0xFFFFFFFF;
@@ -110,6 +112,7 @@ static uint32_t my_crc32_ptr( const void *ptr ) {
 
     return crc ^ 0xFFFFFFFF;
 }
+#endif
 
 #define DOT_PRINT( format, ... ) fprintf( dot_stream, format, ##__VA_ARGS__ );
 
@@ -158,8 +161,8 @@ static void NodeDumpRecursively( const Node_t* node, FILE* dot_stream ) {
 
 static void NodeInitDot( const Node_t* node, FILE* dot_stream ) {
 #ifdef _SIMPLIFIED_DUMP
-    DOT_PRINT( "\tnode_%p [style=filled, ", 
-        ( void* ) node );
+    DOT_PRINT( "\tnode_%lX [style=filled, ", 
+        ( uintptr_t ) node );
     switch ( node->value.type ) {
         case NODE_NUMBER:
             DOT_PRINT( "fillcolor=\"#5DADE2\", label=\"%lg\"]; \n", node->value.data.number );
@@ -170,6 +173,8 @@ static void NodeInitDot( const Node_t* node, FILE* dot_stream ) {
         case NODE_OPERATION:
             DOT_PRINT( "fillcolor=\"#F5B041\", label=\"%s\"]; \n", operations_txt[ node->value.data.operation ] );
             break;
+
+        case NODE_UNKNOWN:
         default:
             DOT_PRINT( "fillcolor=\"#ff3737b9\", label=\"?\"]; \n" );
             break;
@@ -247,11 +252,13 @@ static void NodeInitDot( const Node_t* node, FILE* dot_stream ) {
 static void NodeBondInitDot( const Node_t* node, FILE* dot_stream ) {
  #ifdef _SIMPLIFIED_DUMP
     if ( node->left ) {
-        DOT_PRINT( "\tnode_%p -> node_%p;\n", ( void* )node, ( void* ) node->left );
+        DOT_PRINT( "\tnode_%lX -> node_%lX;\n", 
+            ( uintptr_t ) node, ( uintptr_t ) node->left );
         NodeDumpRecursively( node->left, dot_stream );
     }
     if ( node->right ) {
-        DOT_PRINT( "\tnode_%p -> node_%p;\n", ( void* )node, ( void* ) node->right );
+        DOT_PRINT( "\tnode_%lX -> node_%lX;\n", 
+            ( uintptr_t ) node, ( uintptr_t ) node->right );
         NodeDumpRecursively( node->right, dot_stream );
     }
 #else
@@ -332,9 +339,9 @@ static void CleanSpace( char** position ) {
 }
 
 
-#define INIT_OP_IS_IT( str, name, ... )                                                           \
+#define OP_IS_IT( str, name, ... )                                                           \
     if ( strncmp( *current_position, str, strlen( str ) ) == 0 ) {                                \
-        *current_position += strlen( str );                                                       \
+        read_bytes = strlen( str );                                                       \
         PRINT( "Parse operation: %s \n", str );                                                \
         return name;                                                                              \
     }
@@ -342,12 +349,14 @@ static void CleanSpace( char** position ) {
 static OperationType IsItOperation( char** current_position ) {
     CleanSpace( current_position );
 
-    INIT_OPERATIONS( INIT_OP_IS_IT )
+    int read_bytes = 0;
+
+    INIT_OPERATIONS( OP_IS_IT )
 
     return OP_NOPE;
 }
 
-#undef INIT_OP_IS_IT
+#undef OP_IS_IT
 
 
 static TreeData_t NodeParseValue( char** current_position ) {
@@ -471,8 +480,6 @@ Tree_t* TreeReadFromBuffer( char* buffer ) {
     }
     else {
         PRINT( "База считалась корректно. \n" );
+        return tree;
     }
-
-    return tree;
 }
-

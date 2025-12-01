@@ -4,6 +4,11 @@
 #include "Tree.h"
 
 
+struct Latex_t {
+    FILE* tex_file;
+    char* tex_path;
+};
+
 #ifdef _DEBUG
 struct Log_t {
     FILE* log_file;
@@ -27,6 +32,7 @@ struct Differentiator_t {
         char* current_position;
     } expr_info;
 
+    struct Latex_t latex;
 
 #ifdef _DEBUG
     struct Log_t logging;
@@ -36,11 +42,14 @@ struct Differentiator_t {
 Differentiator_t* DifferentiatorCtor( const char* expr_filename );
 void DifferentiatorDtor( Differentiator_t** diff );
 
+Tree_t* ExpressionParser( char* buffer );
+
 double EvaluateTree( Tree_t* tree );
 
-Tree_t* DifferentiateExpression( Differentiator_t* diff, const char independent_variable, const int order );
+Tree_t* DifferentiateExpression( Differentiator_t* diff, char independent_var, int order );
 
 void DifferentiatiorDump( Differentiator_t* diff, enum DumpMode mode, const char* format, ... );
+void DifferentiatorDumpLatex( Differentiator_t* diff, int order );
 void TreeDumpLatex( Tree_t* tree, const char* filename );
 
 #endif

@@ -5,8 +5,12 @@
 
 #include "Differentiator.h"
 #include "DebugUtils.h"
+#include "Tree.h"
 #include "UtilsRW.h"
 
+
+static Latex_t LatexCtor();
+static void LatexDtor( Latex_t* latex );
 
 ON_DEBUG( static Log_t DumpCtor() );
 ON_DEBUG( static void DumpDtor( Log_t* logging ) );
@@ -16,8 +20,9 @@ Differentiator_t* DifferentiatorCtor( const char* expr_filename ) {
     assert( diff && "Memory allocation error for `diff`" );
 
     diff->expr_info.buffer = ReadToBuffer( expr_filename );
-    diff->expr_tree = TreeReadFromBuffer( diff->expr_info.buffer );
+    diff->expr_tree = ExpressionParser( diff->expr_info.buffer );
 
+    diff->latex = LatexCtor();
     ON_DEBUG( diff->logging = DumpCtor(); )
 
     return diff;
@@ -32,11 +37,201 @@ void DifferentiatorDtor( Differentiator_t** diff ) {
     TreeDtor( &( ( *diff )->expr_tree ), NULL );
     TreeDtor( &( ( *diff )->diff_tree ), NULL );
 
-    DumpDtor( &( ( *diff )->logging ) );
+    LatexDtor( &( ( *diff )->latex ) );
+    ON_DEBUG( DumpDtor( &( ( *diff )->logging ) ); )
 
     free( *diff );
     *diff = NULL;
 }
+
+
+#define LATEX_PRINT( format, ... )
+
+static Latex_t LatexCtor() {
+    Latex_t latex = {};
+
+    latex.tex_path = strdup( "tex" );
+
+    char buffer[ MAX_LEN_PATH ] = {};
+    snprintf( buffer, MAX_LEN_PATH, "%s/main.tex", latex.tex_path );
+    latex.tex_file = fopen( buffer, "w" );
+    assert( latex.tex_file && "Error opening file" );
+
+    LATEX_PRINT(
+        "\\documentclass[14pt,a4paper{article}\n"
+        "\\input{tex/style}\n"
+        "\\title{Дифференциатор 3000}\n"
+        "\\begin{document}\n"
+        "\\maketitle\n"
+        "\\tableofcontents\n"
+        "\\newpage\n"
+    );
+
+    fflush( latex.tex_file );
+
+    return latex;
+}
+
+static void LatexDtor( Latex_t* latex ) {
+    my_assert( latex, "Null pointer on `latex`" );
+
+    LATEX_PRINT( "\\end{document}\n" );
+
+    free( latex->tex_path );
+    int fclose_result = fclose( latex->tex_file );
+    if ( fclose_result ) {
+        PRINT_ERROR( "Fail to close latex file \n" );
+    }
+}
+
+
+static void NodeToLatex( const Node_t* node, FILE* file );
+
+void DifferentiatorDumpLatex( Differentiator_t* diff, int order ) {
+    my_assert(diff, "Null pointer on `diff`");
+
+    FILE* f = diff->latex.tex_file;
+    my_assert(f, "Latex file is not open");
+
+    LATEX_PRINT( "\\section*{Исходное выражение}\n" );
+    LATEX_PRINT( "$" );
+    NodeToLatex( diff->expr_tree->root, f );
+    LATEX_PRINT( "$\n\n");
+
+    LATEX_PRINT( "\\section*{Производная порядка %d}\n", order );
+
+    LATEX_PRINT( "$\\frac{d^{%d}}{d%c^{%d}}(", order, 'x', order  );
+    NodeToLatex( diff->expr_tree->root, f );
+    LATEX_PRINT( ") = ");
+
+    NodeToLatex( diff->diff_tree->root, f );
+    LATEX_PRINT( "$\n\n" );
+}
+
+
+static void NodeToLatex(const Node_t* node, FILE* file) {
+    if ( !node ) return;
+
+    switch ( node->value.type ) {
+        case NODE_NUMBER:
+            LATEX_PRINT( "%g", node->value.data.number);
+            break;
+        case NODE_VARIABLE:
+            LATEX_PRINT( "%c", node->value.data.variable);
+            break;
+        case NODE_OPERATION: {
+            switch (node->value.data.operation) {
+                case OP_ADD:
+                    LATEX_PRINT( "(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( " + " );
+                    NodeToLatex(node->right, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_SUB:
+                    LATEX_PRINT( "(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( " - " );
+                    NodeToLatex( node->right, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_MUL:
+                    LATEX_PRINT( "(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( " \\cdot " );
+                    NodeToLatex( node->right, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_DIV:
+                    LATEX_PRINT( "\\frac{" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( "}{" );
+                    NodeToLatex(node->right, file );
+                    LATEX_PRINT( "}" );
+                    break;
+                case OP_POW:
+                    LATEX_PRINT( "{" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( "}^{" );
+                    NodeToLatex( node->right, file );
+                    LATEX_PRINT( "}" );
+                    break;
+                case OP_SIN:
+                    LATEX_PRINT( "\\sin(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_COS:
+                    LATEX_PRINT( "\\cos(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_TAN:
+                    LATEX_PRINT( "\\tan(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_LOG:
+                    LATEX_PRINT( "\\log(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_SH:
+                    LATEX_PRINT( "\\sinh(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_CH:
+                    LATEX_PRINT( "\\cosh(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_ARCSIN:
+                    LATEX_PRINT( "\\arcsin(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_ARCCOS:
+                    LATEX_PRINT( "\\arccos(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_ARCTAN:
+                    LATEX_PRINT( "\\arctan(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                case OP_ARCCTAN:
+                    LATEX_PRINT( "\\text{arccot}(" );
+                    NodeToLatex( node->left, file );
+                    LATEX_PRINT( ")" );
+                    break;
+                default:
+                    LATEX_PRINT( "??" );
+                    break;
+            }
+            break;
+        }
+        case NODE_UNKNOWN:
+        default: 
+            LATEX_PRINT( "???" ); break;
+    }
+}
+
+#ifdef _DEBUG
+static void DiffNodeDumpLatex( Differentiator_t* diff, Node_t* original, Node_t* derivative, char independent_var, int order ) {
+    FILE* file = diff->latex.tex_file;
+    LATEX_PRINT( "\\[\n" );
+    LATEX_PRINT( "\\frac{d^{%d}}{d %c^{%d}} ", order, independent_var, order);
+    NodeToLatex(original, file );
+    LATEX_PRINT( " = " );
+    NodeToLatex(derivative, file );
+    LATEX_PRINT( "\n\\]\n" );
+    fflush( file );
+}
+#endif
+
+#undef LATEX_PRINT
 
 #ifdef _DEBUG
 static Log_t DumpCtor() {
@@ -121,37 +316,39 @@ void DifferentiatiorDump( Differentiator_t* diff, enum DumpMode mode, const char
             PRINT_ERROR( "I can't be here, but I'm here \n" );
             break;
     }
+
+    fflush( diff->logging.log_file );
 }
 
 #undef PRINT_HTML
 #endif
 
 
-static Node_t* DifferentiateNode( Node_t* node, char independent_variable );
+static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differentiator_t* diff, int order );
 
 static TreeData_t MakeNumber( double number );
 static TreeData_t MakeOperation( OperationType operation );
 static TreeData_t MakeVariable( char variable );
 
-Tree_t* DifferentiateExpression( Differentiator_t* diff, const char independent_variable, int order ) {
-    my_assert( diff, "Null pointer on `diff`" );
+Tree_t* DifferentiateExpression(Differentiator_t* diff, char independent_var, int order) {
+    my_assert( diff, "Null pointer on diff" );
 
     diff->diff_tree = TreeCtor();
+    Node_t* node = diff->expr_tree->root;
 
-    diff->diff_tree->root = DifferentiateNode( diff->expr_tree->root, independent_variable );
+    Node_t* deriv = NULL;
+    for ( int idx = 1; idx <= order; idx++ ) {
+        deriv = DifferentiateNode( node, independent_var, diff, idx );
+        node = deriv;
+    }
 
-    if ( diff->diff_tree->root ) {
-        return diff->diff_tree;
-    }
-    else {
-        PRINT_ERROR( "Error differentiating the expression!!! \n" );
-        return NULL;
-    }
+    diff->diff_tree->root = deriv;
+    return diff->diff_tree;
 }
 
 
-#define NUM_( n ) NodeCreate(MakeNumber(n), NULL)
-#define VAR_( v ) NodeCreate(MakeVariable(v), NULL)
+#define NUM_( n ) NodeCreate( MakeNumber(n), NULL )
+#define VAR_( v ) NodeCreate( MakeVariable(v), NULL )
 
 #define ADD_( L, R ) MakeNode( OP_ADD, L, R )
 #define SUB_( L, R ) MakeNode( OP_SUB, L, R )
@@ -162,8 +359,8 @@ Tree_t* DifferentiateExpression( Differentiator_t* diff, const char independent_
 #define cL NodeCopy( node->left )
 #define cR NodeCopy( node->right )
 
-#define dL DifferentiateNode( node->left,  independent_variable )
-#define dR DifferentiateNode( node->right, independent_variable )
+#define dL DifferentiateNode( node->left,  independent_var, diff, order )
+#define dR DifferentiateNode( node->right, independent_var, diff, order )
 
 static Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
     Node_t* n = NodeCreate( MakeOperation( op ), NULL );
@@ -174,29 +371,33 @@ static Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
     return n;
 }
 
-static Node_t* DifferentiateNode( Node_t* node, char independent_variable ) {
+static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differentiator_t* diff, int order ) {
     if (!node)
         return NULL;
 
-    switch (node->value.type) {
+    Node_t* result = NULL;
+
+    switch ( node->value.type ) {
         case NODE_NUMBER:
-            return NUM_(0);
+            result = NUM_(0);
+            break;
 
         case NODE_VARIABLE:
-            return (node->value.data.variable == independent_variable) ? NUM_(1) : NUM_(0);
+            result = ( node->value.data.variable == independent_var ) ? NUM_(1) : NUM_(0);
+            break;
 
         case NODE_OPERATION: {
-            switch (node->value.data.operation) {
-                case OP_ADD: return ADD_( dL, dR );
-                case OP_SUB: return SUB_( dL, dR );
-                case OP_MUL: return ADD_(
-                                        MUL_( dL, cR ),
-                                        MUL_( cL, dR )
-                                    );
-                case OP_DIV: return DIV_(
-                                        SUB_( MUL_( dL, cR ), MUL_( cL, dR ) ),
-                                        MUL_(cR, cR)
-                                    );
+            switch ( node->value.data.operation ) {
+                case OP_ADD: result = ADD_( dL, dR ); break;
+                case OP_SUB: result = SUB_( dL, dR ); break;
+                case OP_MUL: result = ADD_(
+                                          MUL_( dL, cR ),
+                                          MUL_( cL, dR )
+                                      ); break;
+                case OP_DIV: result = DIV_(
+                                          SUB_( MUL_( dL, cR ), MUL_( cL, dR ) ),
+                                          MUL_( cR, cR )
+                                      ); break;
                 case OP_POW: {
                     Node_t* base = node->left;
                     Node_t* exp  = node->right;
@@ -205,56 +406,71 @@ static Node_t* DifferentiateNode( Node_t* node, char independent_variable ) {
 
                     if ( exp_is_const ) {
                         double c = exp->value.data.number;
-                        return MUL_(
-                                   MUL_( NUM_( c ),
-                                         POW_( cL, NUM_( c - 1 ) ) ),
-                                   dL
-                               );
+                        result = MUL_(
+                                     MUL_( NUM_( c ), POW_( cL, NUM_( c - 1 ) ) ),
+                                     dL
+                                 ); break;
                     }
                     if ( base_is_const ) {
                         double a = base->value.data.number;
-                        return MUL_(
-                                   MUL_( POW_( NUM_(a), cR ),
-                                         MakeNode( OP_LOG, NUM_(a), NULL ) ),
+                        result = MUL_(
+                                   MUL_( POW_( NUM_(a), cR ), MakeNode( OP_LOG, NUM_(a), NULL ) ),
                                    dR
-                               );
+                               ); break;
                     }
-                    return MUL_(
-                               POW_( cL, cR ),
-                               ADD_( MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
-                                     MUL_( cR, DIV_( dL, cL ) ) ) );
+                    result = MUL_(
+                                 POW_( cL, cR ),
+                                 ADD_(
+                                     MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
+                                     MUL_( cR, DIV_( dL, cL ) )
+                                 )
+                             ); break;
                 }
 
                 case OP_LOG:
-                    if (!node->right) return DIV_(dL, cL);
-                    return DIV_( SUB_( MUL_( dR, MakeNode(OP_LOG, cL, NULL)),
-                                     MUL_( dL, MakeNode(OP_LOG, cR, NULL))),
-                                MUL_(cR, MakeNode(OP_LOG, cL, NULL)));
+                    if ( !node->right ) {
+                        result = DIV_( dL, cL ); 
+                        break;
+                    }
+                    result = DIV_(
+                                 SUB_(
+                                     MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
+                                     MUL_( dL, MakeNode( OP_LOG, cR, NULL ) )
+                                 ),
+                                 MUL_( cR, MakeNode( OP_LOG, cL, NULL ) )
+                             ); break;
 
-                case OP_SIN: return MUL_(MakeNode(OP_COS, cL, NULL), dL);
-                case OP_COS: return MUL_(NUM_(-1), MUL_(MakeNode(OP_SIN, cL, NULL), dL));
-                case OP_TAN: return DIV_(dL, POW_(MakeNode(OP_COS, cL, NULL), NUM_(2)));
+                case OP_SIN: result = MUL_( MakeNode( OP_COS, cL, NULL ), dL ); break;
+                case OP_COS: result = MUL_( NUM_(-1), MUL_( MakeNode( OP_SIN, cL, NULL ), dL ) ); break;
+                case OP_TAN: result = DIV_( dL, POW_( MakeNode( OP_COS, cL, NULL ), NUM_(2) ) ); break;
 
-                case OP_CTAN: return MUL_(NUM_(-1), DIV_(dL, POW_(MakeNode(OP_SIN, cL, NULL), NUM_(2))));
-                case OP_SH:   return MUL_(MakeNode(OP_CH, cL, NULL), dL);
-                case OP_CH:   return MUL_(MakeNode(OP_SH, cL, NULL), dL);
+                case OP_CTAN: result = MUL_( NUM_(-1), DIV_( dL, POW_( MakeNode( OP_SIN, cL, NULL ), NUM_(2) ) ) ); break;
+                case OP_SH:   result = MUL_( MakeNode( OP_CH, cL, NULL ), dL ); break;
+                case OP_CH:   result = MUL_( MakeNode( OP_SH, cL, NULL ), dL ); break;
 
-                case OP_ARCSIN: return DIV_(dL, POW_(SUB_(NUM_(1), POW_(cL, NUM_(2))), NUM_(-1))); // 1 / sqrt(1-x^2)
-                case OP_ARCCOS: return MUL_(NUM_(-1), DIV_(dL, POW_(SUB_(NUM_(1), POW_(cL, NUM_(2))), NUM_(-1))));
-                case OP_ARCTAN: return DIV_(dL, ADD_(NUM_(1), POW_(cL, NUM_(2))));
-                case OP_ARCCTAN: return MUL_(NUM_(-1), DIV_(dL, ADD_(NUM_(1), POW_(cL, NUM_(2)))));
+                case OP_ARCSIN: result = DIV_( dL, POW_( SUB_( NUM_(1), POW_( cL, NUM_(2) ) ), NUM_(-1) ) ); break;
+                case OP_ARCCOS: result = MUL_( NUM_(-1), DIV_( dL, POW_( SUB_( NUM_(1), POW_( cL, NUM_(2) ) ), NUM_(-1) ) ) ); break;
+                case OP_ARCTAN: result = DIV_( dL, ADD_( NUM_(1), POW_( cL, NUM_(2) ) ) ); break;
+                case OP_ARCCTAN: result = MUL_( NUM_(-1), DIV_( dL, ADD_( NUM_(1), POW_( cL, NUM_(2) ) ) ) ); break;
 
                 default:
                     PRINT_ERROR( "Unknown operation in differentiation!\n" );
-                    return NULL;
+                    result = NULL;
+                    break;
             }
+
+             ON_DEBUG( if ( diff ) DiffNodeDumpLatex( diff, node, result, independent_var, order ); )
+             break;
         }
 
         case NODE_UNKNOWN:
         default:
             PRINT_ERROR( "Error while differentiating the expression!\n" );
-            return NULL;
+            result = NULL;
+            break;
     }
+
+    return result;
 }
 
 static TreeData_t MakeNumber( double number ) {
@@ -284,126 +500,3 @@ static TreeData_t MakeVariable( char variable ) {
 }
 
 
-#define LATEX_PRINT( format, ... )
-
-static void NodeToLatex( const Node_t* node, FILE* file );
-
-void TreeDumpLatex( Tree_t* tree, const char* filename ) {
-    my_assert( tree, "Null pointer on `tree`" );
-    my_assert( filename, "Null pointer on `filename`" );
-
-    FILE* file = fopen( filename, "w" );
-    if ( !file ) {
-        PRINT_ERROR( "Error opening file `%s` \n", filename );
-        return;
-    }
-
-    LATEX_PRINT(
-        "\\documentclass{article}\n"
-        "\\usepackage{amsmath}\n"
-        "\\begin{document}\n"
-        "\\[\n"
-    );
-
-    NodeToLatex( tree->root, file );
-
-    LATEX_PRINT(
-        "\\]\n"
-        "\\end{document}\n"
-    );
-
-    if ( fclose( file ) ) {
-        PRINT_ERROR( "Error closing file `%s` \n", filename );
-    }
-}
-
-static void NodeToLatex( const Node_t* node, FILE* file ) {
-    if ( !node )
-        return;
-
-    switch ( node->value.type ) {
-        case NODE_NUMBER:
-            LATEX_PRINT( "%g", node->value.data.number );
-            return;
-
-        case NODE_VARIABLE:
-            LATEX_PRINT( "%c", node->value.data.variable );
-            return;
-
-        case NODE_OPERATION:
-            switch (node->value.data.operation)
-            {
-                case OP_ADD:
-                    LATEX_PRINT( "(" );
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( " + " );
-                    NodeToLatex(node->right, file);
-                    LATEX_PRINT( ")" );
-                    return;
-
-                case OP_SUB:
-                    LATEX_PRINT( "(");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( " - ");
-                    NodeToLatex(node->right, file);
-                    LATEX_PRINT( ")");
-                    return;
-
-                case OP_MUL:
-                    LATEX_PRINT( "(");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( "\\cdot ");
-                    NodeToLatex(node->right, file);
-                    LATEX_PRINT( ")");
-                    return;
-
-                case OP_DIV:
-                    LATEX_PRINT( "\\frac{");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( "}{");
-                    NodeToLatex(node->right, file);
-                    LATEX_PRINT( "}");
-                    return;
-
-                case OP_POW:
-                    LATEX_PRINT( "{");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( "}^{");
-                    NodeToLatex(node->right, file);
-                    LATEX_PRINT( "}");
-                    return;
-
-                case OP_SIN:
-                    LATEX_PRINT( "\\sin(");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( ")");
-                    return;
-
-                case OP_COS:
-                    LATEX_PRINT( "\\cos(");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( ")");
-                    return;
-
-                case OP_TAN:
-                    LATEX_PRINT( "\\tan(");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( ")");
-                    return;
-
-                case OP_LOG:
-                    LATEX_PRINT( "\\log(");
-                    NodeToLatex(node->left, file);
-                    LATEX_PRINT( ")");
-                    return;
-
-                default:
-                    LATEX_PRINT( "??");
-                    return;
-            }
-
-        case NODE_UNKNOWN:
-        default:
-            LATEX_PRINT( "???" );
-    }
-}

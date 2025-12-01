@@ -48,7 +48,7 @@ static double EvaluateNode( Node_t* node, Variable_t variables[ MAX_SIZE ], size
                 case OP_MUL:     return L * R;
                 case OP_DIV:     return L / R;
                 case OP_POW:     return pow( L, R );
-                case OP_LOG:     return log(R) / log(L);
+                case OP_LOG:     return log(L) / log(R);
                 
                 case OP_SIN:     return sin(L);
                 case OP_COS:     return cos(L);
