@@ -5,26 +5,26 @@
 #include "DebugUtils.h"
 #include "Tree.h"
 
-static Node_t* GetGrammar( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetExpression( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetTerm( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetPrimary( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetPow( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetNumber( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetFunction( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
-static Node_t* GetVariable( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error );
+static Node_t* GetGrammar( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetExpression( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetPrimary( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetPow( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetNumber( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error );
+static Node_t* GetVariable( char** cur_pos, Node_t* parent, bool* error );
 
 static void SkipSpaces( char** position );
 
 
-Tree_t* ExpressionParser( Differentiator_t* diff ) {
-    my_assert( diff, "Null pointer on `diff`" );
+Tree_t* ExpressionParser( char* buffer ) {
+    my_assert( buffer, "Null pointer on `buffer`" );
 
     Tree_t* tree = TreeCtor();
 
-    char* current_position = diff->expr_info.buffer;
+    char* current_position = buffer;
     bool  error = false;
-    tree->root = GetGrammar( &current_position, diff, NULL, &error );
+    tree->root = GetGrammar( &current_position, NULL, &error );
 
     if ( error ) {
         PRINT_ERROR( "The database was not considered correct. \n" );
@@ -39,19 +39,19 @@ Tree_t* ExpressionParser( Differentiator_t* diff ) {
 
 
 #define SyntaxError( string ) \
-    PRINT_ERROR( "Syntax error in `%s` %s::%d --- %s", __func__, __FILE__, __LINE__, *string ); \
+    PRINT_ERROR( "Syntax error in `%s` %s:%d --- `%s`\n", __func__, __FILE__, __LINE__, *string ); \
     *error = true;
 
 #define DEBUG_PRINT_PARSE PRINT( "\n" ); PRINT( "Current position: `%s` \n", *cur_pos );
 
-static Node_t* GetGrammar( char **cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetGrammar( char **cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    Node_t* node = GetExpression( cur_pos, diff, parent, error );
+    Node_t* node = GetExpression( cur_pos, parent, error );
 
     SkipSpaces( cur_pos );
 
@@ -59,19 +59,17 @@ static Node_t* GetGrammar( char **cur_pos, Differentiator_t* diff, Node_t* paren
         SyntaxError( cur_pos );
     }
 
-    ( *cur_pos )++;
-
     return node;
 }
 
-static Node_t* GetExpression( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetExpression( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    Node_t* node = GetTerm( cur_pos, diff, parent, error );
+    Node_t* node = GetTerm( cur_pos, parent, error );
 
     SkipSpaces( cur_pos );
 
@@ -89,7 +87,7 @@ static Node_t* GetExpression( char** cur_pos, Differentiator_t* diff, Node_t* pa
 
         SkipSpaces( cur_pos );
 
-        Node_t* right = GetTerm( cur_pos, diff, new_root, error );
+        Node_t* right = GetTerm( cur_pos, new_root, error );
         new_root->right = right;
 
         node = new_root; 
@@ -98,14 +96,14 @@ static Node_t* GetExpression( char** cur_pos, Differentiator_t* diff, Node_t* pa
     return node;
 }
 
-static Node_t* GetPow( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetPow( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
     
-    Node_t* node = GetPrimary( cur_pos, diff, parent, error );
+    Node_t* node = GetPrimary( cur_pos, parent, error );
 
     if ( **cur_pos == '^' ) {
         ( *cur_pos )++;
@@ -122,7 +120,7 @@ static Node_t* GetPow( char** cur_pos, Differentiator_t* diff, Node_t* parent, b
 
         SkipSpaces( cur_pos );
 
-        Node_t* right = GetPow( cur_pos, diff, new_root, error );
+        Node_t* right = GetPow( cur_pos, new_root, error );
         new_root->right = right;
 
         node = new_root;
@@ -131,14 +129,14 @@ static Node_t* GetPow( char** cur_pos, Differentiator_t* diff, Node_t* parent, b
     return node;
 }
 
-static Node_t* GetTerm( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    Node_t* node = GetPow( cur_pos, diff, parent, error );
+    Node_t* node = GetPow( cur_pos, parent, error );
 
     while ( **cur_pos == '*' || **cur_pos == '/' ) {
         char op = **cur_pos;
@@ -156,7 +154,7 @@ static Node_t* GetTerm( char** cur_pos, Differentiator_t* diff, Node_t* parent, 
 
         SkipSpaces( cur_pos );
 
-        Node_t* right = GetPow( cur_pos, diff, new_root, error );
+        Node_t* right = GetPow( cur_pos, new_root, error );
         new_root->right = right;
 
         node = new_root;
@@ -165,7 +163,7 @@ static Node_t* GetTerm( char** cur_pos, Differentiator_t* diff, Node_t* parent, 
     return node;
 }
 
-static Node_t* GetPrimary( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetPrimary( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
@@ -174,7 +172,7 @@ static Node_t* GetPrimary( char** cur_pos, Differentiator_t* diff, Node_t* paren
 
     DEBUG_PRINT_PARSE;
 
-    Node_t* func = GetFunction( cur_pos, diff, parent, error );
+    Node_t* func = GetFunction( cur_pos, parent, error );
     if ( func ) return func;
     if ( *error ) return NULL;
 
@@ -183,48 +181,52 @@ static Node_t* GetPrimary( char** cur_pos, Differentiator_t* diff, Node_t* paren
 
         SkipSpaces( cur_pos );
 
-        Node_t* node = GetExpression( cur_pos, diff, parent, error );
+        Node_t* node = GetExpression( cur_pos, parent, error );
         if ( *error ) return NULL;
 
         SkipSpaces( cur_pos );
 
-        if ( **cur_pos != ')' )
-            SyntaxError( cur_pos );
-
-        ( *cur_pos )++;
+        if ( **cur_pos != ')' ) {
+            SyntaxError(cur_pos);
+            return NULL;
+        }
+        (*cur_pos)++;
         return node;
     }
     else {
         SkipSpaces( cur_pos );
 
-        Node_t* node = GetVariable( cur_pos, diff, parent, error );
+        Node_t* node = GetVariable( cur_pos, parent, error );
         if ( node ) return node;
-        return GetNumber( cur_pos, diff, parent, error );
+        return GetNumber( cur_pos, parent, error );
     }
 }
 
-static Node_t* GetNumber( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetNumber( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    double val = 0;
-    while ( '0' <= **cur_pos && **cur_pos <= '9' ) {
-        val = val * 10 + ( **cur_pos - '0' );
-        ( *cur_pos )++;
+    char* start = *cur_pos;
+    char* end   = NULL;
+    double val  = strtod( start, &end );
+
+    if ( end == start ) {
+        return NULL; 
     }
-    PRINT( "Parse NUMBER = %lg \n", val );
+
+    *cur_pos = end; 
 
     TreeData_t value = {};
     value.type = NODE_NUMBER;
     value.data.number = val;
 
     Node_t* node = NodeCreate( value, parent );
-
-    if ( isdigit( **cur_pos ) ) {
-        SyntaxError( cur_pos );
+    if ( !node ) {
+        *error = true;
+        return NULL;
     }
 
     return node;
@@ -239,7 +241,7 @@ static Node_t* GetNumber( char** cur_pos, Differentiator_t* diff, Node_t* parent
     }
 
 
-static Node_t* GetFunction( char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error ) {
+static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
     my_assert( error,    "Null pointer on `error`" );
@@ -277,7 +279,7 @@ static Node_t* GetFunction( char** cur_pos, Differentiator_t* diff, Node_t* pare
     ( *cur_pos )++;
 
     if ( args_count == ONE_ARG || args_count == TWO_ARGS ) {
-        Node_t* arg1 = GetExpression( cur_pos, diff, func_node, error );
+        Node_t* arg1 = GetExpression( cur_pos, func_node, error );
         if ( *error || !arg1 ) {
             NodeDelete( func_node, NULL, NULL );
             return NULL;
@@ -296,7 +298,7 @@ static Node_t* GetFunction( char** cur_pos, Differentiator_t* diff, Node_t* pare
             }
             ( *cur_pos )++;
 
-            Node_t* arg2 = GetExpression( cur_pos, diff, func_node, error );
+            Node_t* arg2 = GetExpression( cur_pos, func_node, error );
             if ( *error || !arg2 ) {
                 NodeDelete( func_node, NULL, NULL );
                 return NULL;
@@ -320,7 +322,7 @@ static Node_t* GetFunction( char** cur_pos, Differentiator_t* diff, Node_t* pare
 
 #undef OPERATION_COMPARE
 
-static Node_t* GetVariable(char** cur_pos, Differentiator_t* diff, Node_t* parent, bool* error) {
+static Node_t* GetVariable(char** cur_pos, Node_t* parent, bool* error) {
     my_assert(cur_pos,  "Null pointer on `cur_pos`");
     my_assert(*cur_pos, "Null pointer on `*cur_pos`");
     my_assert(error,    "Null pointer on `error`");
@@ -337,8 +339,6 @@ static Node_t* GetVariable(char** cur_pos, Differentiator_t* diff, Node_t* paren
             *error = true;
             return NULL;
         }
-
-        diff->var_table.number_of_variables++;
 
         return node;
     }

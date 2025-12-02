@@ -28,14 +28,17 @@ struct Variable_t {
     double value;
 };
 
+struct VarTable_t {
+    Variable_t* data;
+    size_t number_of_variables;
+    size_t capacity;
+};
+
 struct Differentiator_t {
     Tree_t* expr_tree;
     Tree_t* diff_tree;
 
-    struct VarTable_t {
-        Variable_t* data;
-        size_t number_of_variables;
-    } var_table;
+    struct VarTable_t var_table;
 
     struct Expression_t {
         char* buffer;
@@ -52,7 +55,14 @@ struct Differentiator_t {
 Differentiator_t* DifferentiatorCtor( const char* expr_filename );
 void DifferentiatorDtor( Differentiator_t** diff );
 
-Tree_t* ExpressionParser( Differentiator_t* diff );
+Tree_t* ExpressionParser( char* buffer );
+
+bool VarTableGet( VarTable_t* table, char name, double* value );
+void VarTableSet( VarTable_t* table, char name, double value );
+
+bool OptimizeTree( Tree_t* tree, Differentiator_t* diff, char independent_var );
+bool OptimizeConstants( Tree_t* tree, VarTable_t* var_table, char independent_var );
+bool SimplifyTree( Tree_t* tree );
 
 double EvaluateTree( Tree_t* tree );
 
@@ -62,9 +72,9 @@ void DifferentiatiorDump( Differentiator_t* diff, enum DumpMode mode, const char
 void DifferentiatorDumpLatex( Differentiator_t* diff, int order );
 void TreeDumpLatex( const Tree_t* tree, FILE* latex_file );
 
-void DifferentiatorDumpLatex( Differentiator_t* diff, int order );
-void DifferentiatorAddTaylorSeries( Differentiator_t* diff, char var, double point, int order );
-void DifferentiatorAddEvaluation( Differentiator_t* diff, double point );
+// void DifferentiatorDumpLatex( Differentiator_t* diff, int order );
+// void DifferentiatorAddTaylorSeries( Differentiator_t* diff, char var, double point, int order );
+// void DifferentiatorAddEvaluation( Differentiator_t* diff, double point );
 
 
 #endif
