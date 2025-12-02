@@ -1,7 +1,7 @@
 #include "Differentiator.h"
 
 int main() {
-    const char* filename = "base.txt";
+    const char* filename = "expr.txt";
     Differentiator_t* diff = DifferentiatorCtor( filename );
     DifferentiatiorDump( diff, DUMP_ORIGINAL, "After creation expr_tree" );
     // printf( "Результат: %lg \n", EvaluateTree( diff->expr_tree ) );

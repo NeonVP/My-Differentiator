@@ -13,7 +13,7 @@
             abort();                                                                                      \
         }
 
-    #define PRINT(str, ...) fprintf( stderr, DEBUG " " str COLOR_RESET, ##__VA_ARGS__ );
+    #define PRINT(str, ...) fprintf( stderr, "%s:%d " DEBUG " " str COLOR_RESET, __FILE__, __LINE__, ##__VA_ARGS__ );
     
     #define PRINT_EXECUTING \
         PRINT( DEBUG COLOR_BRIGHT_YELLOW "<Executing `%s`> --- ", __func__ );

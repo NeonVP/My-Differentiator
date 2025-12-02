@@ -8,16 +8,12 @@
 
 const size_t MAX_SIZE = 256;
 
-struct Variable_t {
-    char name;
-    double value;
-};
-
 static double EvaluateNode( Node_t* node, Variable_t variables[ MAX_SIZE ], size_t number_of_variables );
 static double SearchVariable( char name, Variable_t variables[ MAX_SIZE ], size_t* number_of_variables );
 
-double EvaluateTree( Tree_t* tree ) {
+double EvaluateTree( Tree_t* tree, Differentiator_t* diff ) {
     my_assert( tree, "Null pointer on `tree`" );
+    my_assert( diff, "Null pointer on `diff`" );
 
     double result = 0;
     Variable_t inited_variables[ MAX_SIZE ] = {};
@@ -49,6 +45,7 @@ static double EvaluateNode( Node_t* node, Variable_t variables[ MAX_SIZE ], size
                 case OP_DIV:     return L / R;
                 case OP_POW:     return pow( L, R );
                 case OP_LOG:     return log(L) / log(R);
+                case OP_LN:      return log(L);
                 
                 case OP_SIN:     return sin(L);
                 case OP_COS:     return cos(L);

@@ -20,7 +20,10 @@ Differentiator_t* DifferentiatorCtor( const char* expr_filename ) {
     assert( diff && "Memory allocation error for `diff`" );
 
     diff->expr_info.buffer = ReadToBuffer( expr_filename );
-    diff->expr_tree = ExpressionParser( diff->expr_info.buffer );
+    diff->expr_tree = ExpressionParser( diff );
+
+    diff->var_table.data = ( Variable_t* ) calloc ( diff->var_table.number_of_variables, sizeof( Variable_t ) );
+    assert( diff->var_table.data && "Memory allocation error for var_table.data" );
 
     diff->latex = LatexCtor();
     ON_DEBUG( diff->logging = DumpCtor(); )
@@ -45,7 +48,7 @@ void DifferentiatorDtor( Differentiator_t** diff ) {
 }
 
 
-#define LATEX_PRINT( format, ... )
+#define LATEX_PRINT( format, ... ) fprintf( latex.tex_file, format, ##__VA_ARGS__ );
 
 static Latex_t LatexCtor() {
     Latex_t latex = {};
@@ -75,7 +78,7 @@ static Latex_t LatexCtor() {
 static void LatexDtor( Latex_t* latex ) {
     my_assert( latex, "Null pointer on `latex`" );
 
-    LATEX_PRINT( "\\end{document}\n" );
+    fprintf( latex->tex_file, "\\end{document}\n" );
 
     free( latex->tex_path );
     int fclose_result = fclose( latex->tex_file );
@@ -84,150 +87,84 @@ static void LatexDtor( Latex_t* latex ) {
     }
 }
 
+#undef LATEX_PRINT
+
+#define LATEX_PRINT( format, ... ) fprintf( latex_file, format, ##__VA_ARGS__ );
 
 static void NodeToLatex( const Node_t* node, FILE* file );
+static void LatexInsertChildren( const Node_t* node, FILE* latex_file, const char* format_string );
 
-void DifferentiatorDumpLatex( Differentiator_t* diff, int order ) {
-    my_assert(diff, "Null pointer on `diff`");
+#define OPERATIONS_LATEX( str, name, value, is_func, n_args, latex_fmt ) \
+    latex_fmt,
 
-    FILE* f = diff->latex.tex_file;
-    my_assert(f, "Latex file is not open");
+static const char* latex_format[] = {
+    INIT_OPERATIONS( OPERATIONS_LATEX )
+};
 
-    LATEX_PRINT( "\\section*{Исходное выражение}\n" );
-    LATEX_PRINT( "$" );
-    NodeToLatex( diff->expr_tree->root, f );
-    LATEX_PRINT( "$\n\n");
+#undef OPERATIONS_LATEX
 
-    LATEX_PRINT( "\\section*{Производная порядка %d}\n", order );
 
-    LATEX_PRINT( "$\\frac{d^{%d}}{d%c^{%d}}(", order, 'x', order  );
-    NodeToLatex( diff->expr_tree->root, f );
-    LATEX_PRINT( ") = ");
+void TreeDumpLatex( const Tree_t* tree, FILE* latex_file ) {
+    if ( !tree ) return;
+    if ( !latex_file ) return;
 
-    NodeToLatex( diff->diff_tree->root, f );
-    LATEX_PRINT( "$\n\n" );
+    NodeToLatex( tree->root, latex_file );
 }
 
-
-static void NodeToLatex(const Node_t* node, FILE* file) {
+static void NodeToLatex( const Node_t* node, FILE* latex_file ) {
     if ( !node ) return;
 
     switch ( node->value.type ) {
         case NODE_NUMBER:
-            LATEX_PRINT( "%g", node->value.data.number);
+            LATEX_PRINT( " %g ", node->value.data.number);
             break;
         case NODE_VARIABLE:
-            LATEX_PRINT( "%c", node->value.data.variable);
+            LATEX_PRINT( " %c ", node->value.data.variable);
             break;
         case NODE_OPERATION: {
-            switch (node->value.data.operation) {
-                case OP_ADD:
-                    LATEX_PRINT( "(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( " + " );
-                    NodeToLatex(node->right, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_SUB:
-                    LATEX_PRINT( "(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( " - " );
-                    NodeToLatex( node->right, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_MUL:
-                    LATEX_PRINT( "(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( " \\cdot " );
-                    NodeToLatex( node->right, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_DIV:
-                    LATEX_PRINT( "\\frac{" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( "}{" );
-                    NodeToLatex(node->right, file );
-                    LATEX_PRINT( "}" );
-                    break;
-                case OP_POW:
-                    LATEX_PRINT( "{" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( "}^{" );
-                    NodeToLatex( node->right, file );
-                    LATEX_PRINT( "}" );
-                    break;
-                case OP_SIN:
-                    LATEX_PRINT( "\\sin(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_COS:
-                    LATEX_PRINT( "\\cos(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_TAN:
-                    LATEX_PRINT( "\\tan(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_LOG:
-                    LATEX_PRINT( "\\log(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_SH:
-                    LATEX_PRINT( "\\sinh(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_CH:
-                    LATEX_PRINT( "\\cosh(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_ARCSIN:
-                    LATEX_PRINT( "\\arcsin(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_ARCCOS:
-                    LATEX_PRINT( "\\arccos(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_ARCTAN:
-                    LATEX_PRINT( "\\arctan(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                case OP_ARCCTAN:
-                    LATEX_PRINT( "\\text{arccot}(" );
-                    NodeToLatex( node->left, file );
-                    LATEX_PRINT( ")" );
-                    break;
-                default:
-                    LATEX_PRINT( "??" );
-                    break;
-            }
+            const int op = node->value.data.operation;
+            const char* format = latex_format[op];
+            LatexInsertChildren( node, latex_file, format );
             break;
         }
         case NODE_UNKNOWN:
         default: 
-            LATEX_PRINT( "???" ); break;
+            LATEX_PRINT( "???" ); 
+            break;
     }
 }
 
+static void LatexInsertChildren( const Node_t* node, FILE* latex_file, const char* format_string ) {
+    int child_id = 0;
+
+    for ( size_t idx = 0; format_string[ idx ]; idx++ ) {
+        if ( format_string[idx] == '%' && format_string[ idx + 1 ] == 'e' ) {
+            const Node_t* child = ( child_id == 0 ? node->left : node->right );
+
+            if ( child )
+                NodeToLatex( child, latex_file );
+            else
+                LATEX_PRINT( "<?>" );
+
+            child_id++;
+            idx++;
+        } else {
+            fputc( format_string[idx], latex_file );
+        }
+    }
+}
+
+
 #ifdef _DEBUG
 static void DiffNodeDumpLatex( Differentiator_t* diff, Node_t* original, Node_t* derivative, char independent_var, int order ) {
-    FILE* file = diff->latex.tex_file;
+    FILE* latex_file = diff->latex.tex_file;
     LATEX_PRINT( "\\[\n" );
     LATEX_PRINT( "\\frac{d^{%d}}{d %c^{%d}} ", order, independent_var, order);
-    NodeToLatex(original, file );
+    NodeToLatex(original, latex_file );
     LATEX_PRINT( " = " );
-    NodeToLatex(derivative, file );
+    NodeToLatex(derivative, latex_file );
     LATEX_PRINT( "\n\\]\n" );
-    fflush( file );
+    fflush( latex_file );
 }
 #endif
 
@@ -289,6 +226,11 @@ void DifferentiatiorDump( Differentiator_t* diff, enum DumpMode mode, const char
 
     switch ( mode ) {
         case DUMP_ORIGINAL:
+            if ( !diff->expr_tree ) {
+                PRINT_HTML( "Empty tree" );
+                break;
+            }
+
             PRINT_HTML("<pre>Original expression:</pre> \n" );
             NodeGraphicDump(
                 diff->expr_tree->root, "%s/image%lu.dot",

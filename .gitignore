@@ -3,7 +3,7 @@
 /dump
 /tex
 Logging.*
-base.txt
+*.txt
 diff-debug
 diff-release
 diff-simple-dump

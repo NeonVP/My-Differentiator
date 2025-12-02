@@ -4,22 +4,23 @@
 #include "UtilsRW.h"
 #include "DebugUtils.h"
 
-int MakeDirectory( const char* path ) {
-    PRINT( "I'm going to create directory `%s` \n", path );
-    
+int MakeDirectory( const char* path ) {    
     if ( mkdir( path, 0700 ) == -1 ) {
-        if ( errno == EEXIST ) {
-            return 0;
-        } else {
+        if ( errno != EEXIST ) {
+            PRINT_ERROR( "Directory `%s` was not created. \n", path );
             return -1;
         }
     }
+
+    PRINT( "Directory `%s` was created. \n", path );
     return 0;
 }
 
-off_t DetermineTheFileSize( const char* file_name ) {
+off_t DetermineTheFileSize( const char* filename ) {
+    my_assert( filename, "Null pointer on `filename`" );
+
     struct stat file_stat;
-    int check_stat = stat( file_name, &file_stat );
+    int check_stat = stat( filename, &file_stat );
     assert( check_stat == 0 );
 
     return file_stat.st_size;
@@ -27,6 +28,8 @@ off_t DetermineTheFileSize( const char* file_name ) {
 
 
 char* ReadToBuffer( const char* filename ) {
+    my_assert( filename, "Null pointer on `filename`" );
+
     off_t file_size = DetermineTheFileSize( filename );
     if ( file_size == 0 ) {
         PRINT_ERROR( "The file `%s` is empty!", filename );

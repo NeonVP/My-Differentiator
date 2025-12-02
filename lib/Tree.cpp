@@ -338,7 +338,6 @@ static void CleanSpace( char** position ) {
         ( *position )++;
 }
 
-
 #define OP_IS_IT( str, name, ... )                                                           \
     if ( strncmp( *current_position, str, strlen( str ) ) == 0 ) {                                \
         read_bytes = strlen( str );                                                       \
