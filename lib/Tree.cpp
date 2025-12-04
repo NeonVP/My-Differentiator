@@ -64,6 +64,13 @@ void NodeDelete( Node_t* node, Tree_t* tree, void ( *clean_function ) ( TreeData
         return;
     }
 
+    if ( node->parent ) {
+        if ( node->parent->left == node ) 
+            node->parent->left = NULL;
+        else
+            node->parent->right = NULL;
+    }
+
     if ( node->left )
         NodeDelete( node->left, tree, clean_function ); 
 
@@ -76,19 +83,19 @@ void NodeDelete( Node_t* node, Tree_t* tree, void ( *clean_function ) ( TreeData
     free( node );
 }
 
-Node_t* NodeCopy( Node_t* node) {
+Node_t* NodeCopy( Node_t* node ) {
     if (!node) return NULL;
 
-    // создаём новый узел с такой же value, без родителя (будет установлен ниже)
-    Node_t* new_node = NodeCreate(node->value, NULL);
-    if (!new_node) return NULL;
+    Node_t* new_node = NodeCreate( node->value, NULL );
+    if ( !new_node ) return NULL;
 
-    // рекурсивно копируем детей и устанавливаем parent
-    new_node->left = NodeCopy(node->left);
-    if (new_node->left) new_node->left->parent = new_node;
+    new_node->parent = node->parent;
 
-    new_node->right = NodeCopy(node->right);
-    if (new_node->right) new_node->right->parent = new_node;
+    new_node->left = NodeCopy( node->left );
+    if ( new_node->left ) new_node->left->parent = new_node;
+
+    new_node->right = NodeCopy( node->right );
+    if ( new_node->right ) new_node->right->parent = new_node;
 
     return new_node;
 }
@@ -168,7 +175,7 @@ static void NodeInitDot( const Node_t* node, FILE* dot_stream ) {
             DOT_PRINT( "fillcolor=\"#5DADE2\", label=\"%lg\"]; \n", node->value.data.number );
             break;
         case NODE_VARIABLE:
-            DOT_PRINT( "fillcolor=\"#82E0AA\", label=\"%c\"]; \n", node->value.data.variable );
+            DOT_PRINT( "fillcolor=\"#82E0AA\", label=\"`%c`\"]; \n", node->value.data.variable );
             break;
         case NODE_OPERATION:
             DOT_PRINT( "fillcolor=\"#F5B041\", label=\"%s\"]; \n", operations_txt[ node->value.data.operation ] );
@@ -206,7 +213,7 @@ static void NodeInitDot( const Node_t* node, FILE* dot_stream ) {
             case NODE_VARIABLE:
                 DOT_PRINT( "\t\t\t<TD PORT=\"type\">type=VARIABLE</TD> \n" );
                 DOT_PRINT( "\t\t</TR> \n\t\t<TR> \n" );
-                DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=%c</TD> \n", node->value.data.variable );
+                DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=`%c`</TD> \n", node->value.data.variable );
                 break;
             case NODE_OPERATION: {
                 DOT_PRINT( "\t\t\t<TD PORT=\"type\">type=OPERATION</TD> \n" );

@@ -14,13 +14,6 @@
         }
 
     #define PRINT(str, ...) fprintf( stderr, "%s:%d " DEBUG " " str COLOR_RESET, __FILE__, __LINE__, ##__VA_ARGS__ );
-    
-    #define PRINT_EXECUTING \
-        PRINT( DEBUG COLOR_BRIGHT_YELLOW "<Executing `%s`> --- ", __func__ );
-    #define PRINT_STATUS_OK \
-        PRINT( COLOR_BRIGHT_GREEN  "OK \n" );
-    #define PRINT_STATUS_FAIL \
-        PRINT( COLOR_BRIGHT_RED    "FAIL \n" );
 
     #define ON_DEBUG(...) __VA_ARGS__
 #else

@@ -19,7 +19,8 @@ struct Log_t {
 
 enum DumpMode {
     DUMP_ORIGINAL       = 0,
-    DUMP_DIFFERENTIATED = 1
+    DUMP_DIFFERENTIATED = 1,
+    DUMP_TAYLOR         = 2
 };
 #endif
 
@@ -37,6 +38,7 @@ struct VarTable_t {
 struct Differentiator_t {
     Tree_t* expr_tree;
     Tree_t* diff_tree;
+    Tree_t* taylor_tree;
 
     struct VarTable_t var_table;
 
@@ -55,26 +57,40 @@ struct Differentiator_t {
 Differentiator_t* DifferentiatorCtor( const char* expr_filename );
 void DifferentiatorDtor( Differentiator_t** diff );
 
+// EBNF
 Tree_t* ExpressionParser( char* buffer );
 
 bool VarTableGet( VarTable_t* table, char name, double* value );
 void VarTableSet( VarTable_t* table, char name, double value );
+void VarTableAskUser( VarTable_t* table );
 
+// Tree Optimization
 bool OptimizeTree( Tree_t* tree, Differentiator_t* diff, char independent_var );
-bool OptimizeConstants( Tree_t* tree, VarTable_t* var_table, char independent_var );
+bool OptimizeConstants( Tree_t* tree, Differentiator_t* diff, char independent_var );
 bool SimplifyTree( Tree_t* tree );
 
-double EvaluateTree( Tree_t* tree );
+// Evaluate expression
+double EvaluateTree( Tree_t* tree, Differentiator_t* diff );
 
+// Differentiate expression
 Tree_t* DifferentiateExpression( Differentiator_t* diff, char independent_var, int order );
 
+// Taylor decomposition
+Tree_t* DifferentiatorBuildTaylorTree( Differentiator_t* diff, char var, double point, int order );
+
+// Graphic DUMP
 void DifferentiatiorDump( Differentiator_t* diff, enum DumpMode mode, const char* format, ... );
-void DifferentiatorDumpLatex( Differentiator_t* diff, int order );
+
+// Latex DUMP
+const char* GetJokeLine(OperationType op);
+
+void NodeToLatex(const Node_t* node, FILE* latex_file, int parent_priority = 0);
 void TreeDumpLatex( const Tree_t* tree, FILE* latex_file );
+void DifferentiatorAddOrigExpression( Differentiator_t* diff, int order );
+void DifferentiatorAddEvaluation( Differentiator_t* diff, char name );
+void DifferentiatorAddTaylorSeries( Differentiator_t* diff, char var, int order );
 
-// void DifferentiatorDumpLatex( Differentiator_t* diff, int order );
-// void DifferentiatorAddTaylorSeries( Differentiator_t* diff, char var, double point, int order );
-// void DifferentiatorAddEvaluation( Differentiator_t* diff, double point );
-
+// GNU PLOT
+void DifferentiatorPlotFunctionAndTaylor(Differentiator_t* diff, char var, double x_min, double x_max, int n_points, const char* output_image);
 
 #endif

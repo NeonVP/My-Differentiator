@@ -7,3 +7,6 @@ Logging.*
 diff-debug
 diff-release
 diff-simple-dump
+*.png
+main.pdf
+main.log

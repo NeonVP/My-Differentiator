@@ -138,6 +138,8 @@ static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error ) {
 
     Node_t* node = GetPow( cur_pos, parent, error );
 
+    SkipSpaces( cur_pos );
+
     while ( **cur_pos == '*' || **cur_pos == '/' ) {
         char op = **cur_pos;
         ( *cur_pos )++;
@@ -173,7 +175,7 @@ static Node_t* GetPrimary( char** cur_pos, Node_t* parent, bool* error ) {
     DEBUG_PRINT_PARSE;
 
     Node_t* func = GetFunction( cur_pos, parent, error );
-    if ( func ) return func;
+    if ( func )   return func;
     if ( *error ) return NULL;
 
     if ( **cur_pos == '(' ) {
@@ -240,7 +242,6 @@ static Node_t* GetNumber( char** cur_pos, Node_t* parent, bool* error ) {
         args_count = num_args;                                               \
     }
 
-
 static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
@@ -278,6 +279,8 @@ static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
     }
     ( *cur_pos )++;
 
+    SkipSpaces( cur_pos );
+
     if ( args_count == ONE_ARG || args_count == TWO_ARGS ) {
         Node_t* arg1 = GetExpression( cur_pos, func_node, error );
         if ( *error || !arg1 ) {
@@ -289,7 +292,6 @@ static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
         arg1->parent    = func_node;
 
         if ( args_count == TWO_ARGS ) {
-            // Должна быть запятая
             if (**cur_pos != ',') {
                 SyntaxError( cur_pos );
                 *error = true;
