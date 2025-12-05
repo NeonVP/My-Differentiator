@@ -485,7 +485,10 @@ static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differenti
 
                 case OP_LN: result = DIV_( dL, cL ); break;
 
-                case OP_SIN: result = MUL_( MakeNode( OP_COS, cL, NULL ), dL ); break;
+                case OP_SIN: result = MUL_( 
+                    MakeNode( OP_COS, cL, NULL ), 
+                    dL 
+                ); break;
                 case OP_COS: result = MUL_( NUM_(-1), MUL_( MakeNode( OP_SIN, cL, NULL ), dL ) ); break;
                 case OP_TAN: result = DIV_( dL, POW_( MakeNode( OP_COS, cL, NULL ), NUM_(2) ) ); break;
 
@@ -517,8 +520,8 @@ static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differenti
 
     OPTIMIZATE_NODE;
 
-    if ( node->value.type == NODE_OPERATION )
-        EXPLAIN;
+    // if ( node->value.type == NODE_OPERATION )
+    //     EXPLAIN;
 
     return result;
 }
@@ -558,7 +561,6 @@ static bool IsNumber( Node_t* node, double value );
 static bool NodesEqual( Node_t* a, Node_t* b );
 static void ReplaceNode( Node_t** node_ptr, Node_t* new_node );
 static bool SimplifyTreeNode( Node_t** node );
-static bool CompareDoubleToDouble( double a, double b, double eps = 1e-10 );
 
 bool OptimizeTree( Tree_t* tree, Differentiator_t* diff, char independent_var ) {
     my_assert( tree, "Null pointer on `tree`" );
@@ -616,7 +618,6 @@ static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* resul
             return true;
 
         case NODE_VARIABLE: {
-            // Если переменная есть в таблице и это не независимая переменная
             double value = 0.0;
             if ( VarTableGet( var_table, node->value.data.variable, &value ) && value != NAN ) {
                 *result = value;
@@ -644,7 +645,7 @@ static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* resul
                     *result = left / right; return true;
                 case OP_POW: *result = pow(left, right); return true;
                 case OP_LOG:
-                    if ( left <= 0 || right <= 0 || CompareDoubleToDouble(left, 1.0) ) return false;
+                    if ( left <= 0 || right <= 0 || CompareDoubleToDouble(left, 1.0) == 0 ) return false;
                     *result = log(right)/log(left); return true;
                 case OP_SIN: *result = sin(left); return true;
                 case OP_COS: *result = cos(left); return true;
@@ -709,7 +710,7 @@ static void OptimizeConstantsNode( Node_t* node, VarTable_t* var_table, char ind
 
 
 static bool IsNumber( Node_t* node, double value ) {
-    return node && node->value.type == NODE_NUMBER && CompareDoubleToDouble(node->value.data.number, value);
+    return node && node->value.type == NODE_NUMBER && CompareDoubleToDouble( node->value.data.number, value  ) == 0;
 }
 
 static bool NodesEqual( Node_t* a, Node_t* b ) {
@@ -718,7 +719,7 @@ static bool NodesEqual( Node_t* a, Node_t* b ) {
     if (a->value.type != b->value.type) return false;
 
     switch ( a->value.type ) {
-        case NODE_NUMBER: return CompareDoubleToDouble(a->value.data.number, b->value.data.number);
+        case NODE_NUMBER: return CompareDoubleToDouble(a->value.data.number, b->value.data.number) == 0;
         case NODE_VARIABLE: return a->value.data.variable == b->value.data.variable;
         case NODE_OPERATION:
             return a->value.data.operation == b->value.data.operation &&
@@ -729,27 +730,25 @@ static bool NodesEqual( Node_t* a, Node_t* b ) {
     }
 }
 
-static void ReplaceNode(Node_t** node_ptr, Node_t* new_node) {
-    if ( !node_ptr ) return;
-
+static void ReplaceNode( Node_t** node_ptr, Node_t* new_node ) {
+    if (!node_ptr) return;
     Node_t* old_node = *node_ptr;
-
+    
+    if (!old_node) {
+        *node_ptr = new_node;
+        if ( new_node ) new_node->parent = NULL;
+        return;
+    }
+    
     if ( old_node == new_node ) return;
-
-    Node_t* parent = old_node ? old_node->parent : NULL;
-
-    if ( new_node )
-        new_node->parent = parent;
-
+    
+    Node_t* parent = old_node->parent;
+    
+    // NodeDelete(old_node, NULL, NULL);
+    
     *node_ptr = new_node;
-
-    // if ( old_node ) {
-    //     old_node->left  = NULL;
-    //     old_node->right = NULL;
-    //     NodeDelete(old_node, NULL, NULL);
-    // }
+    if ( new_node ) new_node->parent = parent;
 }
-
 
 static bool SimplifyAdd( Node_t** node_ptr );
 static bool SimplifySub( Node_t** node_ptr );
@@ -888,8 +887,12 @@ static bool SimplifyPow(Node_t** node_ptr) {
 }
 
 
-static bool CompareDoubleToDouble(double a, double b, double eps) {
-    return abs( a - b ) < eps;
+int CompareDoubleToDouble( double a, double b, double eps ) {
+    if ( abs( a - b ) < eps ) return 0;
+    if ( a - b > eps )          return 1;
+    if ( a - b < -eps )         return -1;
+
+    return 0;
 }
 
 

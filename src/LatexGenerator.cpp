@@ -64,7 +64,13 @@ void NodeToLatex( const Node_t* node, FILE* latex_file, int parent_priority ) {
 
     switch( node->value.type ) {
         case NODE_NUMBER:
+            if ( CompareDoubleToDouble( node->value.data.number, 0) < 0 ) {
+                LATEX_PRINT( "(" );
+            }
             LATEX_PRINT(" %.3g ", node->value.data.number);
+            if ( CompareDoubleToDouble( node->value.data.number, 0) < 0 ) {
+                LATEX_PRINT( ")" );
+            }
             break;
         case NODE_VARIABLE:
             LATEX_PRINT(" %c ", node->value.data.variable);
@@ -81,11 +87,11 @@ void NodeToLatex( const Node_t* node, FILE* latex_file, int parent_priority ) {
 
 
 static void LatexInsertChildren( const Node_t* node, FILE* latex_file, int parent_priority ) {
-    OperationType op = (OperationType)node->value.data.operation;
-    const char* format = latex_format[op];
-    int curr_priority = GetOperationPriority(op);
+    OperationType op = ( OperationType ) node->value.data.operation;
+    const char* format = latex_format[ op ];
+    int curr_priority = GetOperationPriority( op );
 
-    bool need_brackets = (curr_priority < parent_priority);
+    bool need_brackets = ( curr_priority < parent_priority );
     if (need_brackets) LATEX_PRINT("(");
 
     int child_id = 0;
