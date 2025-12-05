@@ -25,7 +25,7 @@
 #define dR DifferentiateNode( node->right, independent_var, diff, order )
 
 
-static Latex_t LatexCtor();
+static Latex_t LatexCtor(); // You should better tranfer latex functional in separate module (LatexGenerator e.g.)
 static void LatexDtor( Latex_t* latex );
 
 static void VarTableCtor( VarTable_t* table, size_t initial_capacity );
@@ -50,7 +50,7 @@ Differentiator_t* DifferentiatorCtor( const char* expr_filename ) {
     diff->expr_tree = ExpressionParser( diff->expr_info.buffer );
 
     VarTableCtor( &diff->var_table, 5 );
-    if ( diff->expr_tree && diff->expr_tree->root ) {
+    if ( diff->expr_tree && diff->expr_tree->root ) { // TODO: There should be assert instead (that you use in `main` func. If you're trying to avoid case with empty expr given then you should just return)
         AddVarsToTableFromNode( diff->expr_tree->root, &diff->var_table );
     }
     VarTableAskUser( &diff->var_table );
@@ -103,7 +103,7 @@ static Latex_t LatexCtor() {
         "\\newpage\n"
     );
 
-    fflush( latex.tex_file );
+    fflush( latex.tex_file ); // Why you flushing every time?
 
     return latex;
 }
@@ -197,13 +197,13 @@ void VarTableAskUser( VarTable_t* table ) {
             printf( "Invalid input. Using 0.0 for %c\n", table->data[ idx  ].name );
             table->data[ idx ].value = 0.0;
 
-            int c;
+            int c; // TODO do inline func
             while ( ( c = getchar() ) != '\n' && c != EOF ) {}
         }
     }
 }
 
-static double Factorial( const double n ) {
+static double Factorial( const double n ) { // TODO: you should make unsigned int as func parameter
     double result = 1;
     for ( int i = 2; i <= n; i++ ) 
         result *= i;
@@ -394,7 +394,7 @@ Tree_t* DifferentiateExpression(Differentiator_t* diff, char independent_var, in
     return diff->diff_tree;
 }
 
-static Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
+static Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) { // Pay attention to case: Node_t* l, Node_t* r 
     Node_t* n = NodeCreate( MakeOperation( op ), NULL );
     n->left = L;
     if (L) L->parent = n;
@@ -553,6 +553,8 @@ static TreeData_t MakeVariable( char variable ) {
 }
 
 // ======================== OPTIMIZATION ========================
+// TODO: Your comment marks that optimization functional needs separate module 
+
 static bool ContainsVariable( Node_t* node, char independent_var );
 static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* result );
 static void OptimizeConstantsNode( Node_t* node, VarTable_t* var_table, 
@@ -619,7 +621,7 @@ static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* resul
 
         case NODE_VARIABLE: {
             double value = 0.0;
-            if ( VarTableGet( var_table, node->value.data.variable, &value ) && value != NAN ) {
+            if ( VarTableGet( var_table, node->value.data.variable, &value ) && value != NAN ) { // TODO: isfinite(value) <- It checks value != NAN and value != INF and other double subnormal stuff
                 *result = value;
                 return true;
             }
@@ -641,7 +643,7 @@ static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* resul
                 case OP_SUB: *result = left - right; return true;
                 case OP_MUL: *result = left * right; return true;
                 case OP_DIV: 
-                    if ( abs(right) < 1e-15 ) return false;
+                    if ( abs(right) < 1e-15 ) return false; // TODO: Hardcoded epsilon and double compare -> CompareDoubleToDouble
                     *result = left / right; return true;
                 case OP_POW: *result = pow(left, right); return true;
                 case OP_LOG:

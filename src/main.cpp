@@ -7,7 +7,7 @@ int main() {
 
     Differentiator_t *diff = DifferentiatorCtor( filename );
     assert( diff && diff->expr_tree && diff->expr_tree->root &&
-            "Tree is empty!" );
+            "Tree is empty!" ); // This should do differentiator itself, you can check here only that diff is non null
 
     DifferentiatiorDump( diff, DUMP_ORIGINAL, "After creation expr_tree" );
     DifferentiatorAddOrigExpression( diff, 1 );
@@ -19,8 +19,6 @@ int main() {
 
     DifferentiatorPlotFunctionAndTaylor( diff, 'x', -5.0, 5.0, 200,
                                          "plot.png" );
-    
-    
 
     DifferentiatorDtor( &diff );
 

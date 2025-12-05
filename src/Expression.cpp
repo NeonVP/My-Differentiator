@@ -32,7 +32,7 @@ static double EvaluateNode( Node_t *node, VarTable_t *var_table ) {
                     printf( "Invalid input. Using 0.0 for %c\n",
                             node->value.data.variable );
                     value = 0.0;
-                    int c;
+                    int c; // TODO You already have VarTableGet, why you copy paste it?
                     while ( ( c = getchar() ) != '\n' && c != EOF ) {
                     }
                 }

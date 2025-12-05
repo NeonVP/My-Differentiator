@@ -17,7 +17,7 @@ void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var,
     FILE *f_func = fopen( func_data_file, "w" );
     FILE *f_taylor = fopen( taylor_data_file, "w" );
     if ( !f_func || !f_taylor ) {
-        perror( "Не удалось создать временный файл" );
+        perror( "Не удалось создать временный файл" ); // Better use Russian / English only
         return;
     }
 

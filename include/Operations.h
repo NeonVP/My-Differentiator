@@ -1,6 +1,7 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
+/* FIXME: Useless code
 enum IsFunction {
     NotFunction = 0,
     Function    = 1
@@ -11,6 +12,23 @@ enum NumberOfParams {
     ONE_ARG  = 1,
     TWO_ARGS = 2
 };
+*/
+
+// TODO: You should add joke line for latex here
+
+/* P.S. You can stop using operation ID's here, because it's hard to give ID manually when you have a lot of operations
+In enums compiler will calculate enum value by itself. If you will run into problem: How to retrieve number of supported commands? Then
+you may add pseudo command that will mark end at the end like this:
+
+enum OPS {
+    ADD, # 0
+    SUB, # 1
+
+    NUM_OF_COMANDS, # 2
+};
+
+But this is just note :-) So you better not implement it here and hurry up
+*/
 
 #define INIT_OPERATIONS( macros ) \
     macros( "+",       OP_ADD,     0,   NotFunction,  ZERO_ARG,  "%e + %e"                    ) \
