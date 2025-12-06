@@ -49,53 +49,54 @@ struct Differentiator_t {
 #endif
 };
 
+TreeData_t MakeNumber( double number );
+TreeData_t MakeOperation( OperationType operation );
+TreeData_t MakeVariable( char variable );
+Node_t *MakeNode( OperationType op, Node_t *L, Node_t *R );
+
 Differentiator_t *DifferentiatorCtor( const char *expr_filename );
 void DifferentiatorDtor( Differentiator_t **diff );
 
 // EBNF
 Tree_t *ExpressionParser( char *buffer );
 
+// Variable Table
 bool VarTableGet( VarTable_t *table, char name, double *value );
 void VarTableSet( VarTable_t *table, char name, double value );
 void VarTableAskUser( VarTable_t *table );
 
 // Tree Optimization
 bool OptimizeTree( Tree_t *tree, Differentiator_t *diff, char independent_var );
-bool OptimizeConstants( Tree_t *tree, Differentiator_t *diff,
-                        char independent_var );
+bool OptimizeConstants( Tree_t *tree, Differentiator_t *diff, char independent_var );
 bool SimplifyTree( Tree_t *tree );
 
 // Evaluate expression
 double EvaluateTree( Tree_t *tree, Differentiator_t *diff );
 
 // Differentiate expression
-Tree_t *DifferentiateExpression( Differentiator_t *diff, char independent_var,
-                                 int order );
+Tree_t *DifferentiateExpression( Differentiator_t *diff, char independent_var, int order );
 
 // Taylor decomposition
-Tree_t *DifferentiatorBuildTaylorTree( Differentiator_t *diff, char var,
-                                       double point, int order );
+Tree_t *DifferentiatorBuildTaylorTree( Differentiator_t *diff, char var, double point, int order );
 
 // Graphic DUMP
-void DifferentiatiorDump( Differentiator_t *diff, enum DumpMode mode,
-                          const char *format, ... );
+void DifferentiatiorDump( Differentiator_t *diff, enum DumpMode mode, const char *format, ... );
 
-// Latex DUMP
+// Latex
+Latex_t LatexCtor();
+void LatexDtor( Latex_t *latex );
+
 const char *GetJokeLine( OperationType op );
 
-void NodeToLatex( const Node_t *node, FILE *latex_file,
-                  int parent_priority = 0 );
+void NodeToLatex( const Node_t *node, FILE *latex_file, int parent_priority = 0 );
 void TreeDumpLatex( const Tree_t *tree, FILE *latex_file );
 void DifferentiatorAddOrigExpression( Differentiator_t *diff, int order );
 void DifferentiatorAddEvaluation( Differentiator_t *diff, char name );
-void DifferentiatorAddTaylorSeries( Differentiator_t *diff, char var,
-                                    int order );
+void DifferentiatorAddTaylorSeries( Differentiator_t *diff, char var, int order );
 
 // GNU PLOT
-void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var,
-                                          double x_min, double x_max,
-                                          int n_points,
-                                          const char *output_image );
+void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var, double x_min, double x_max,
+                                          int n_points, const char *output_image );
 
 int CompareDoubleToDouble( double a, double b, double eps = 1e-10 );
 

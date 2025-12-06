@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <cmath>
+#include <cstddef>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -24,19 +26,12 @@
 #define dL DifferentiateNode( node->left,  independent_var, diff, order )
 #define dR DifferentiateNode( node->right, independent_var, diff, order )
 
-
-static Latex_t LatexCtor();
-static void LatexDtor( Latex_t* latex );
-
+// Variable Table
 static void VarTableCtor( VarTable_t* table, size_t initial_capacity );
 static void VarTableDtor( VarTable_t* table );
 
 static void AddVarsToTableFromNode( Node_t* node, VarTable_t* table );
 
-static TreeData_t MakeNumber( double number );
-static TreeData_t MakeOperation( OperationType operation );
-static TreeData_t MakeVariable( char variable );
-static Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R );
 
 ON_DEBUG( static Log_t DumpCtor() );
 ON_DEBUG( static void DumpDtor( Log_t* logging ) );
@@ -79,51 +74,6 @@ void DifferentiatorDtor( Differentiator_t** diff ) {
     free( *diff );
     *diff = NULL;
 }
-
-
-#define LATEX_PRINT( format, ... ) fprintf( latex.tex_file, format, ##__VA_ARGS__ );
-
-static Latex_t LatexCtor() {
-    Latex_t latex = {};
-
-    latex.tex_path = strdup( "tex" );
-
-    char buffer[ MAX_LEN_PATH ] = {};
-    snprintf( buffer, MAX_LEN_PATH, "%s/main.tex", latex.tex_path );
-    latex.tex_file = fopen( buffer, "w" );
-    assert( latex.tex_file && "Error opening file" );
-
-    LATEX_PRINT(
-        "\\documentclass[14pt,a4paper]{article}\n"
-        "\\input{tex/style}\n"
-        "\\title{Дифференциатор 3000}\n"
-        "\\begin{document}\n"
-        "\\maketitle\n"
-        "\\tableofcontents\n"
-        "\\newpage\n"
-    );
-
-    fflush( latex.tex_file );
-
-    return latex;
-}
-
-static void LatexDtor( Latex_t* latex ) {
-    my_assert( latex, "Null pointer on `latex`" );
-
-    fprintf( latex->tex_file, "\\end{document}\n" );
-
-    free( latex->tex_path );
-    int fclose_result = fclose( latex->tex_file );
-    if ( fclose_result ) {
-        PRINT_ERROR( "Fail to close latex file \n" );
-    }
-
-    system( "xelatex tex/main.tex" );
-}
-
-#undef LATEX_PRINT
-
 
 static void VarTableCtor( VarTable_t* table, size_t initial_capacity ) {
     my_assert( table, "Null pointer on `table`" );
@@ -204,6 +154,7 @@ void VarTableAskUser( VarTable_t* table ) {
 }
 
 static double Factorial( const double n ) {
+    assert( isfinite( n ) && "An infinite number" );
     double result = 1;
     for ( int i = 2; i <= n; i++ ) 
         result *= i;
@@ -213,6 +164,8 @@ static double Factorial( const double n ) {
 
 Tree_t* DifferentiatorBuildTaylorTree( Differentiator_t* diff, char var, double point, int order ) {
     my_assert( diff, "Null pointer on `diff`" );
+
+    PRINT( "Start building Taylor Tree" );
 
     Node_t* result =  NUM_( 0 );
 
@@ -241,6 +194,9 @@ Tree_t* DifferentiatorBuildTaylorTree( Differentiator_t* diff, char var, double 
 
     Tree_t* res_tree = TreeCtor();
     res_tree->root = result;
+
+    PRINT( "Finish buldding Taylor tree" );
+
     return res_tree;
 }
 
@@ -369,7 +325,7 @@ Tree_t* DifferentiateExpression(Differentiator_t* diff, char independent_var, in
     if ( diff->diff_tree ) TreeDtor( &( diff->diff_tree ), NULL );
     diff->diff_tree = TreeCtor();
 
-    Node_t* node = diff->expr_tree->root;
+    Node_t* node = NodeCopy( diff->expr_tree->root );
     Node_t* deriv = NULL;
 
     for ( int idx = 1; idx <= order; idx++ ) {
@@ -394,7 +350,7 @@ Tree_t* DifferentiateExpression(Differentiator_t* diff, char independent_var, in
     return diff->diff_tree;
 }
 
-static Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
+Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
     Node_t* n = NodeCreate( MakeOperation( op ), NULL );
     n->left = L;
     if (L) L->parent = n;
@@ -526,7 +482,7 @@ static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differenti
     return result;
 }
 
-static TreeData_t MakeNumber( double number ) {
+TreeData_t MakeNumber( double number ) {
     TreeData_t value = {};
     value.type = NODE_NUMBER;
     value.data.number = number;
@@ -534,7 +490,7 @@ static TreeData_t MakeNumber( double number ) {
     return value;
 }
 
-static TreeData_t MakeOperation( OperationType operation ) {
+TreeData_t MakeOperation( OperationType operation ) {
     TreeData_t value = {};
 
     value.type = NODE_OPERATION;
@@ -543,7 +499,7 @@ static TreeData_t MakeOperation( OperationType operation ) {
     return value;
 }
 
-static TreeData_t MakeVariable( char variable ) {
+TreeData_t MakeVariable( char variable ) {
     TreeData_t value = {};
 
     value.type = NODE_VARIABLE;
@@ -553,338 +509,337 @@ static TreeData_t MakeVariable( char variable ) {
 }
 
 // ======================== OPTIMIZATION ========================
-static bool ContainsVariable( Node_t* node, char independent_var );
-static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* result );
-static void OptimizeConstantsNode( Node_t* node, VarTable_t* var_table, 
-                                    char independent_var, Differentiator_t* diff );
-static bool IsNumber( Node_t* node, double value );
-static bool NodesEqual( Node_t* a, Node_t* b );
-static void ReplaceNode( Node_t** node_ptr, Node_t* new_node );
-static bool SimplifyTreeNode( Node_t** node );
+// static bool ContainsVariable( Node_t* node, char independent_var );
+// static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* result );
+// static void OptimizeConstantsNode( Node_t* node, VarTable_t* var_table, 
+//                                     char independent_var, Differentiator_t* diff );
+// static bool IsNumber( Node_t* node, double value );
+// static bool NodesEqual( Node_t* a, Node_t* b );
+// static void ReplaceNode( Node_t** node_ptr, Node_t* new_node );
+// static bool SimplifyTreeNode( Node_t** node );
 
-bool OptimizeTree( Tree_t* tree, Differentiator_t* diff, char independent_var ) {
-    my_assert( tree, "Null pointer on `tree`" );
-    my_assert( diff, "Null pointer on `diff`" );
+// bool OptimizeTree( Tree_t* tree, Differentiator_t* diff, char independent_var ) {
+//     my_assert( tree, "Null pointer on `tree`" );
+//     my_assert( diff, "Null pointer on `diff`" );
 
-    OptimizeConstants( tree, diff, independent_var );
-    SimplifyTree( tree );
+//     OptimizeConstants( tree, diff, independent_var );
+//     SimplifyTree( tree );
 
-    return true;
-}
+//     return true;
+// }
 
-bool OptimizeConstants( Tree_t* tree, Differentiator_t* diff, char independent_var ) {
-    my_assert( tree, "Null pointer on `tree`" );
-    if ( !tree->root ) return true;
+// bool OptimizeConstants( Tree_t* tree, Differentiator_t* diff, char independent_var ) {
+//     my_assert( tree, "Null pointer on `tree`" );
+//     if ( !tree->root ) return true;
 
-    OptimizeConstantsNode( tree->root, &diff->var_table, independent_var, diff );
-    return true;
-}
+//     OptimizeConstantsNode( tree->root, &diff->var_table, independent_var, diff );
+//     return true;
+// }
 
-bool SimplifyTree( Tree_t* tree ) {
-    my_assert( tree, "Null pointer on `tree`" );
-    if ( !tree->root ) return true;
+// bool SimplifyTree( Tree_t* tree ) {
+//     my_assert( tree, "Null pointer on `tree`" );
+//     if ( !tree->root ) return true;
 
-    bool changed = true;
-    int iterations = 0;
-    const int max_iterations = 100;
+//     bool changed = true;
+//     int iterations = 0;
+//     const int max_iterations = 100;
 
-    while ( changed ) {
-        changed = SimplifyTreeNode( &tree->root );
-        iterations++;
-        if ( iterations > max_iterations ) {
-            PRINT_ERROR( "Too many iterations in `SimplifyTree`\n" );
-            break;
-        }
-    }
+//     while ( changed ) {
+//         changed = SimplifyTreeNode( &tree->root );
+//         iterations++;
+//         if ( iterations > max_iterations ) {
+//             PRINT_ERROR( "Too many iterations in `SimplifyTree`\n" );
+//             break;
+//         }
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
-static bool ContainsVariable( Node_t* node, char independent_var ) {
-    if ( !node ) return false;
+// static bool ContainsVariable( Node_t* node, char independent_var ) {
+//     if ( !node ) return false;
 
-    if ( node->value.type == NODE_VARIABLE ) return node->value.data.variable == independent_var;
-    if ( node->value.type == NODE_NUMBER ) return false;
+//     if ( node->value.type == NODE_VARIABLE ) return node->value.data.variable == independent_var;
+//     if ( node->value.type == NODE_NUMBER ) return false;
 
-    return ContainsVariable( node->left, independent_var ) || ContainsVariable( node->right, independent_var );
-}
+//     return ContainsVariable( node->left, independent_var ) || ContainsVariable( node->right, independent_var );
+// }
 
-static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* result ) {
-    if ( !node || !result ) return false;
+// static bool EvaluateConstant( Node_t* node, VarTable_t* var_table, double* result ) {
+//     if ( !node || !result ) return false;
 
-    switch ( node->value.type ) {
-        case NODE_NUMBER:
-            *result = node->value.data.number;
-            return true;
+//     switch ( node->value.type ) {
+//         case NODE_NUMBER:
+//             *result = node->value.data.number;
+//             return true;
 
-        case NODE_VARIABLE: {
-            double value = 0.0;
-            if ( VarTableGet( var_table, node->value.data.variable, &value ) && value != NAN ) {
-                *result = value;
-                return true;
-            }
-            return false;
-        }
+//         case NODE_VARIABLE: {
+//             double value = 0.0;
+//             if ( VarTableGet( var_table, node->value.data.variable, &value ) && value != NAN ) {
+//                 *result = value;
+//                 return true;
+//             }
+//             return false;
+//         }
 
-        case NODE_OPERATION: {
-            double left = 0, right = 0;
-            bool left_ok = true, right_ok = true;
+//         case NODE_OPERATION: {
+//             double left = 0, right = 0;
+//             bool left_ok = true, right_ok = true;
 
-            if ( node->left ) left_ok = EvaluateConstant( node->left, var_table, &left );
-            if ( node->right ) right_ok = EvaluateConstant( node->right, var_table, &right );
+//             if ( node->left ) left_ok = EvaluateConstant( node->left, var_table, &left );
+//             if ( node->right ) right_ok = EvaluateConstant( node->right, var_table, &right );
 
-            if ( !left_ok || !right_ok ) return false;
+//             if ( !left_ok || !right_ok ) return false;
 
-            OperationType op = (OperationType) node->value.data.operation;
-            switch ( op ) {
-                case OP_ADD: *result = left + right; return true;
-                case OP_SUB: *result = left - right; return true;
-                case OP_MUL: *result = left * right; return true;
-                case OP_DIV: 
-                    if ( abs(right) < 1e-15 ) return false;
-                    *result = left / right; return true;
-                case OP_POW: *result = pow(left, right); return true;
-                case OP_LOG:
-                    if ( left <= 0 || right <= 0 || CompareDoubleToDouble(left, 1.0) == 0 ) return false;
-                    *result = log(right)/log(left); return true;
-                case OP_SIN: *result = sin(left); return true;
-                case OP_COS: *result = cos(left); return true;
-                case OP_TAN: *result = tan(left); return true;
-                case OP_CTAN:
-                    if ( CompareDoubleToDouble(tan(left),0.0) ) return false;
-                    *result = 1.0/tan(left); return true;
-                case OP_SH: *result = sinh(left); return true;
-                case OP_CH: *result = cosh(left); return true;
-                case OP_ARCSIN: 
-                    if ( left < -1.0 || left > 1.0 ) return false;
-                    *result = asin(left); return true;
-                case OP_ARCCOS: 
-                    if ( left < -1.0 || left > 1.0 ) return false;
-                    *result = acos(left); return true;
-                case OP_ARCTAN: *result = atan(left); return true;
-                case OP_ARCCTAN: *result = atan(1.0/left); return true;
-                case OP_ARSINH: *result = asinh(left); return true;
-                case OP_ARCH: 
-                    if ( left < 1.0 ) return false;
-                    *result = acosh(left); return true;
-                case OP_ARTANH: 
-                    if ( left <= -1.0 || left >= 1.0 ) return false;
-                    *result = atanh(left); return true;
+//             OperationType op = (OperationType) node->value.data.operation;
+//             switch ( op ) {
+//                 case OP_ADD: *result = left + right; return true;
+//                 case OP_SUB: *result = left - right; return true;
+//                 case OP_MUL: *result = left * right; return true;
+//                 case OP_DIV: 
+//                     if ( abs(right) < 1e-15 ) return false;
+//                     *result = left / right; return true;
+//                 case OP_POW: *result = pow(left, right); return true;
+//                 case OP_LOG:
+//                     if ( left <= 0 || right <= 0 || CompareDoubleToDouble(left, 1.0) == 0 ) return false;
+//                     *result = log(right)/log(left); return true;
+//                 case OP_SIN: *result = sin(left); return true;
+//                 case OP_COS: *result = cos(left); return true;
+//                 case OP_TAN: *result = tan(left); return true;
+//                 case OP_CTAN:
+//                     if ( CompareDoubleToDouble(tan(left),0.0) ) return false;
+//                     *result = 1.0/tan(left); return true;
+//                 case OP_SH: *result = sinh(left); return true;
+//                 case OP_CH: *result = cosh(left); return true;
+//                 case OP_ARCSIN: 
+//                     if ( left < -1.0 || left > 1.0 ) return false;
+//                     *result = asin(left); return true;
+//                 case OP_ARCCOS: 
+//                     if ( left < -1.0 || left > 1.0 ) return false;
+//                     *result = acos(left); return true;
+//                 case OP_ARCTAN: *result = atan(left); return true;
+//                 case OP_ARCCTAN: *result = atan(1.0/left); return true;
+//                 case OP_ARSINH: *result = asinh(left); return true;
+//                 case OP_ARCH: 
+//                     if ( left < 1.0 ) return false;
+//                     *result = acosh(left); return true;
+//                 case OP_ARTANH: 
+//                     if ( left <= -1.0 || left >= 1.0 ) return false;
+//                     *result = atanh(left); return true;
 
-                case OP_NOPE:
-                default: 
-                    return false;
-            }
-        }
+//                 case OP_NOPE:
+//                 default: 
+//                     return false;
+//             }
+//         }
 
-        case NODE_UNKNOWN:
-        default:
-            return false;
-    }
-}
+//         case NODE_UNKNOWN:
+//         default:
+//             return false;
+//     }
+// }
 
-static void OptimizeConstantsNode( Node_t* node, VarTable_t* var_table, char independent_var, Differentiator_t* diff ) {
-    my_assert( node, "Null pointer on `node`" );
+// static void OptimizeConstantsNode( Node_t* node, VarTable_t* var_table, char independent_var, Differentiator_t* diff ) {
+//     my_assert( node, "Null pointer on `node`" );
 
-    if ( node->left )  OptimizeConstantsNode( node->left, var_table, independent_var, diff );
-    if ( node->right ) OptimizeConstantsNode( node->right, var_table, independent_var, diff );
+//     if ( node->left )  OptimizeConstantsNode( node->left, var_table, independent_var, diff );
+//     if ( node->right ) OptimizeConstantsNode( node->right, var_table, independent_var, diff );
 
-    if ( node->value.type == NODE_OPERATION ) {
-        bool left_const  = node->left  ? !ContainsVariable( node->left, independent_var ) : true;
-        bool right_const = node->right ? !ContainsVariable( node->right, independent_var ) : true;
+//     if ( node->value.type == NODE_OPERATION ) {
+//         bool left_const  = node->left  ? !ContainsVariable( node->left, independent_var ) : true;
+//         bool right_const = node->right ? !ContainsVariable( node->right, independent_var ) : true;
 
-        if ( left_const && right_const ) {
-            Tree_t tmp_tree = {};
-            tmp_tree.root = node;
+//         if ( left_const && right_const ) {
+//             Tree_t tmp_tree = {};
+//             tmp_tree.root = node;
 
-            double result = EvaluateTree( &tmp_tree, diff );
+//             double result = EvaluateTree( &tmp_tree, diff );
 
-            node->value.type = NODE_NUMBER;
-            node->value.data.number = result;
+//             node->value.type = NODE_NUMBER;
+//             node->value.data.number = result;
 
-            if ( node->left )  { NodeDelete( node->left, NULL, NULL ); node->left = NULL; }
-            if ( node->right ) { NodeDelete( node->right, NULL, NULL ); node->right = NULL; }
-        }
-    }
-}
+//             if ( node->left )  { NodeDelete( node->left, NULL, NULL ); node->left = NULL; }
+//             if ( node->right ) { NodeDelete( node->right, NULL, NULL ); node->right = NULL; }
+//         }
+//     }
+// }
 
 
-static bool IsNumber( Node_t* node, double value ) {
-    return node && node->value.type == NODE_NUMBER && CompareDoubleToDouble( node->value.data.number, value  ) == 0;
-}
+// static bool IsNumber( Node_t* node, double value ) {
+//     return node && node->value.type == NODE_NUMBER && CompareDoubleToDouble( node->value.data.number, value  ) == 0;
+// }
 
-static bool NodesEqual( Node_t* a, Node_t* b ) {
-    if (!a && !b) return true;
-    if (!a || !b) return false;
-    if (a->value.type != b->value.type) return false;
+// static bool NodesEqual( Node_t* a, Node_t* b ) {
+//     if (!a && !b) return true;
+//     if (!a || !b) return false;
+//     if (a->value.type != b->value.type) return false;
 
-    switch ( a->value.type ) {
-        case NODE_NUMBER: return CompareDoubleToDouble(a->value.data.number, b->value.data.number) == 0;
-        case NODE_VARIABLE: return a->value.data.variable == b->value.data.variable;
-        case NODE_OPERATION:
-            return a->value.data.operation == b->value.data.operation &&
-                   NodesEqual(a->left, b->left) &&
-                   NodesEqual(a->right, b->right);
-        case NODE_UNKNOWN:
-        default: return false;
-    }
-}
+//     switch ( a->value.type ) {
+//         case NODE_NUMBER: return CompareDoubleToDouble(a->value.data.number, b->value.data.number) == 0;
+//         case NODE_VARIABLE: return a->value.data.variable == b->value.data.variable;
+//         case NODE_OPERATION:
+//             return a->value.data.operation == b->value.data.operation &&
+//                    NodesEqual(a->left, b->left) &&
+//                    NodesEqual(a->right, b->right);
+//         case NODE_UNKNOWN:
+//         default: return false;
+//     }
+// }
 
-static void ReplaceNode( Node_t** node_ptr, Node_t* new_node ) {
-    if (!node_ptr) return;
-    Node_t* old_node = *node_ptr;
+// static void ReplaceNode( Node_t** node_ptr, Node_t* new_node ) {
+//     if (!node_ptr) return;
+//     Node_t* old_node = *node_ptr;
+
+//     if ( !old_node ) {
+//         NodeDelete( *node_ptr, NULL, NULL );
+//         *node_ptr = new_node;
+//         if ( new_node ) new_node->parent = NULL;
+//         return;
+//     }
     
-    if (!old_node) {
-        *node_ptr = new_node;
-        if ( new_node ) new_node->parent = NULL;
-        return;
-    }
+//     if ( old_node == new_node ) return;
     
-    if ( old_node == new_node ) return;
+//     Node_t* parent = old_node->parent;
     
-    Node_t* parent = old_node->parent;
-    
-    // NodeDelete(old_node, NULL, NULL);
-    
-    *node_ptr = new_node;
-    if ( new_node ) new_node->parent = parent;
-}
+//     *node_ptr = new_node;
+//     if ( new_node ) new_node->parent = parent;
+// }
 
-static bool SimplifyAdd( Node_t** node_ptr );
-static bool SimplifySub( Node_t** node_ptr );
-static bool SimplifyMul( Node_t** node_ptr );
-static bool SimplifyDiv( Node_t** node_ptr );
-static bool SimplifyPow( Node_t** node_ptr );
+// static bool SimplifyAdd( Node_t** node_ptr );
+// static bool SimplifySub( Node_t** node_ptr );
+// static bool SimplifyMul( Node_t** node_ptr );
+// static bool SimplifyDiv( Node_t** node_ptr );
+// static bool SimplifyPow( Node_t** node_ptr );
 
-static bool SimplifyTreeNode( Node_t** node_ptr ) {
-    Node_t* node = *node_ptr;
-    if (!node) return false;
+// static bool SimplifyTreeNode( Node_t** node_ptr ) {
+//     Node_t* node = *node_ptr;
+//     if (!node) return false;
 
-    bool changed = false;
+//     bool changed = false;
 
-    if (node->left)
-        changed |= SimplifyTreeNode( &node->left );
+//     if (node->left)
+//         changed |= SimplifyTreeNode( &node->left );
 
-    if (node->right)
-        changed |= SimplifyTreeNode( &node->right );
+//     if (node->right)
+//         changed |= SimplifyTreeNode( &node->right );
 
-    if ( node->value.type != NODE_OPERATION )
-        return changed;
+//     if ( node->value.type != NODE_OPERATION )
+//         return changed;
 
-    OperationType op = ( OperationType ) node->value.data.operation;
+//     OperationType op = ( OperationType ) node->value.data.operation;
 
-    switch (op) {
-        case OP_ADD: if ( SimplifyAdd( node_ptr ) ) return true; break;
-        case OP_SUB: if ( SimplifySub( node_ptr ) ) return true; break;
-        case OP_MUL: if ( SimplifyMul( node_ptr ) ) return true; break;
-        case OP_DIV: if ( SimplifyDiv( node_ptr ) ) return true; break;
-        case OP_POW: if ( SimplifyPow( node_ptr ) ) return true; break;
+//     switch (op) {
+//         case OP_ADD: if ( SimplifyAdd( node_ptr ) ) return true; break;
+//         case OP_SUB: if ( SimplifySub( node_ptr ) ) return true; break;
+//         case OP_MUL: if ( SimplifyMul( node_ptr ) ) return true; break;
+//         case OP_DIV: if ( SimplifyDiv( node_ptr ) ) return true; break;
+//         case OP_POW: if ( SimplifyPow( node_ptr ) ) return true; break;
 
-        default: break;
-    }
+//         default: break;
+//     }
 
-    return changed;
-}
+//     return changed;
+// }
 
 
-static bool SimplifyAdd(Node_t** node_ptr) {
-    Node_t* n = *node_ptr;
+// static bool SimplifyAdd(Node_t** node_ptr) {
+//     Node_t* n = *node_ptr;
 
-    if (IsNumber(n->left, 0.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->right));
-        return true;
-    }
+//     if (IsNumber(n->left, 0.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->right));
+//         return true;
+//     }
 
-    if (IsNumber(n->right, 0.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->left));
-        return true;
-    }
+//     if (IsNumber(n->right, 0.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->left));
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-static bool SimplifySub(Node_t** node_ptr) {
-    Node_t* n = *node_ptr;
+// static bool SimplifySub(Node_t** node_ptr) {
+//     Node_t* n = *node_ptr;
 
-    // x - 0 → x
-    if (IsNumber(n->right, 0.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->left));
-        return true;
-    }
+//     // x - 0 → x
+//     if (IsNumber(n->right, 0.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->left));
+//         return true;
+//     }
 
-    // x - x → 0
-    if (NodesEqual(n->left, n->right)) {
-        ReplaceNode(node_ptr, NUM_(0));
-        return true;
-    }
+//     // x - x → 0
+//     if (NodesEqual(n->left, n->right)) {
+//         ReplaceNode(node_ptr, NUM_(0));
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-static bool SimplifyMul(Node_t** node_ptr) {
-    Node_t* n = *node_ptr;
+// static bool SimplifyMul(Node_t** node_ptr) {
+//     Node_t* n = *node_ptr;
 
-    // 0 * anything → 0
-    if (IsNumber(n->left, 0.0) || IsNumber(n->right, 0.0)) {
-        ReplaceNode(node_ptr, NUM_(0));
-        return true;
-    }
+//     // 0 * anything → 0
+//     if (IsNumber(n->left, 0.0) || IsNumber(n->right, 0.0)) {
+//         ReplaceNode(node_ptr, NUM_(0));
+//         return true;
+//     }
 
-    // 1 * x → x
-    if (IsNumber(n->left, 1.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->right));
-        return true;
-    }
+//     // 1 * x → x
+//     if (IsNumber(n->left, 1.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->right));
+//         return true;
+//     }
 
-    if (IsNumber(n->right, 1.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->left));
-        return true;
-    }
+//     if (IsNumber(n->right, 1.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->left));
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-static bool SimplifyDiv(Node_t** node_ptr) {
-    Node_t* n = *node_ptr;
+// static bool SimplifyDiv(Node_t** node_ptr) {
+//     Node_t* n = *node_ptr;
 
-    // x / 1 → x
-    if (IsNumber(n->right, 1.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->left));
-        return true;
-    }
+//     // x / 1 → x
+//     if (IsNumber(n->right, 1.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->left));
+//         return true;
+//     }
 
-    // 0 / x → 0
-    if (IsNumber(n->left, 0.0)) {
-        ReplaceNode(node_ptr, NUM_(0));
-        return true;
-    }
+//     // 0 / x → 0
+//     if (IsNumber(n->left, 0.0)) {
+//         ReplaceNode(node_ptr, NUM_(0));
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-static bool SimplifyPow(Node_t** node_ptr) {
-    Node_t* n = *node_ptr;
+// static bool SimplifyPow(Node_t** node_ptr) {
+//     Node_t* n = *node_ptr;
 
-    // x^0 = 1
-    if (IsNumber(n->right, 0.0)) {
-        ReplaceNode(node_ptr, NUM_(1));
-        return true;
-    }
+//     // x^0 = 1
+//     if (IsNumber(n->right, 0.0)) {
+//         ReplaceNode(node_ptr, NUM_(1));
+//         return true;
+//     }
 
-    // x^1 = x
-    if (IsNumber(n->right, 1.0)) {
-        ReplaceNode(node_ptr, NodeCopy(n->left));
-        return true;
-    }
+//     // x^1 = x
+//     if (IsNumber(n->right, 1.0)) {
+//         ReplaceNode(node_ptr, NodeCopy(n->left));
+//         return true;
+//     }
 
-    // 0^x = 0
-    if (IsNumber(n->left, 0.0)) {
-        ReplaceNode(node_ptr, NUM_(0));
-        return true;
-    }
+//     // 0^x = 0
+//     if (IsNumber(n->left, 0.0)) {
+//         ReplaceNode(node_ptr, NUM_(0));
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 
 int CompareDoubleToDouble( double a, double b, double eps ) {

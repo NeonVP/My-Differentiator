@@ -27,12 +27,12 @@ Tree_t* ExpressionParser( char* buffer ) {
     tree->root = GetGrammar( &current_position, NULL, &error );
 
     if ( error ) {
-        PRINT_ERROR( "The database was not considered correct. \n" );
+        PRINT_ERROR( "The database was not considered correct." );
         TreeDtor( &tree, NULL );
         return NULL;
     }
     else {
-        PRINT( "The database was considered correct. \n" );
+        PRINT( "The database was considered correct." );
         return tree;
     }
 }
@@ -42,7 +42,7 @@ Tree_t* ExpressionParser( char* buffer ) {
     PRINT_ERROR( "Syntax error in `%s` %s:%d --- `%s`\n", __func__, __FILE__, __LINE__, *string ); \
     *error = true;
 
-#define DEBUG_PRINT_PARSE PRINT( "\n" ); PRINT( "Current position: `%s` \n", *cur_pos );
+#define DEBUG_PRINT_PARSE PRINT( "\n" ); PRINT( "Current position: `%s`", *cur_pos );
 
 static Node_t* GetGrammar( char **cur_pos, Node_t* parent, bool* error ) {
     my_assert( cur_pos,  "Null pointer on `cur_pos`" );

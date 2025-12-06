@@ -23,14 +23,11 @@ static double EvaluateNode( Node_t *node, VarTable_t *var_table ) {
 
         case NODE_VARIABLE: {
             double value = 0.0;
-            if ( !VarTableGet( var_table, node->value.data.variable,
-                               &value ) ) {
-                
-                printf( "Enter value for variable %c: ",
-                        node->value.data.variable );
+            if ( !VarTableGet( var_table, node->value.data.variable, &value ) ) {
+
+                printf( "Enter value for variable %c: ", node->value.data.variable );
                 if ( scanf( "%lf", &value ) != 1 ) {
-                    printf( "Invalid input. Using 0.0 for %c\n",
-                            node->value.data.variable );
+                    printf( "Invalid input. Using 0.0 for %c\n", node->value.data.variable );
                     value = 0.0;
                     int c;
                     while ( ( c = getchar() ) != '\n' && c != EOF ) {
@@ -38,7 +35,7 @@ static double EvaluateNode( Node_t *node, VarTable_t *var_table ) {
                 }
                 VarTableSet( var_table, node->value.data.variable, value );
             }
-            
+
             return value;
         }
 
