@@ -351,8 +351,6 @@ Tree_t *DifferentiateExpression( Differentiator_t *diff, char independent_var, i
         OptimizeTree( diff->diff_tree, diff, independent_var );
     }
 
-    // OptimizeTree( diff->diff_tree, diff, independent_var );
-
     return diff->diff_tree;
 }
 
@@ -475,10 +473,6 @@ static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differenti
             result = NULL;
             break;
     }
-
-    // if ( result ) {
-    //     result = optimize_result( result, diff, independent_var );
-    // }
 
     if ( node->value.type == NODE_OPERATION ) {
         EXPLAIN;

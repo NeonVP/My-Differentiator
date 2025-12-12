@@ -1,7 +1,7 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
-enum IsFunction {
+enum IsFunction { // TODO: NonCustomOp, CustomOp
     NotFunction = 0,
     Function    = 1
 };
@@ -12,10 +12,11 @@ enum NumberOfParams {
     TWO_ARGS = 2
 };
 
+// TODO: add joke_lines here
 #define INIT_OPERATIONS( macros ) \
-    macros( "+",       OP_ADD,     0,   NotFunction,  ZERO_ARG,  "%e \n+ %e"                    ) \
-    macros( "-",       OP_SUB,     1,   NotFunction,  ZERO_ARG,  "%e \n- %e"                    ) \
-    macros( "*",       OP_MUL,     2,   NotFunction,  ZERO_ARG,  "%e \n\\cdot %e"               ) \
+    macros( "+",       OP_ADD,     0,   NotFunction,  ZERO_ARG,  "%e \n+ %e"                  ) \
+    macros( "-",       OP_SUB,     1,   NotFunction,  ZERO_ARG,  "%e \n- %e"                  ) \
+    macros( "*",       OP_MUL,     2,   NotFunction,  ZERO_ARG,  "%e \n\\cdot %e"             ) \
     macros( "/",       OP_DIV,     3,   NotFunction,  ZERO_ARG,  "\\frac{%e}{%e}"             ) \
     macros( "^",       OP_POW,     4,   NotFunction,  ZERO_ARG,  "%e ^ {%e}"                  ) \
     macros( "log",     OP_LOG,     5,   Function,     TWO_ARGS,  "\\log_{%e}{%e}"             ) \
