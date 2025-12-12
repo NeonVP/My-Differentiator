@@ -21,8 +21,7 @@ Tree_t *TreeCtor() {
     return new_tree;
 }
 
-void TreeDtor( Tree_t **tree,
-               void ( *clean_function )( TreeData_t value, Tree_t *tree ) ) {
+void TreeDtor( Tree_t **tree, void ( *clean_function )( TreeData_t value, Tree_t *tree ) ) {
     my_assert( tree, "Null pointer on pointer on `tree`" );
     if ( *tree == NULL )
         return;
@@ -60,8 +59,7 @@ Node_t *NodeRightCreate( const TreeData_t value, Node_t *parent ) {
     return node;
 }
 
-void NodeDelete( Node_t *node, Tree_t *tree,
-                 void ( *clean_function )( TreeData_t value, Tree_t *tree ) ) {
+void NodeDelete( Node_t *node, Tree_t *tree, void ( *clean_function )( TreeData_t value, Tree_t *tree ) ) {
     if ( !node ) {
         return;
     }
@@ -90,8 +88,9 @@ Node_t *NodeCopy( Node_t *node ) {
         return NULL;
 
     Node_t *new_node = NodeCreate( node->value, NULL );
-    if ( !new_node )
-        return NULL;
+    assert( new_node && "Memory allocation error" );
+
+    new_node->parent = NULL;
 
     new_node->left = NodeCopy( node->left );
     if ( new_node->left )
@@ -175,12 +174,10 @@ static void NodeInitDot( const Node_t *node, FILE *dot_stream ) {
     DOT_PRINT( "\tnode_%lX [style=filled, ", (uintptr_t)node );
     switch ( node->value.type ) {
         case NODE_NUMBER:
-            DOT_PRINT( "fillcolor=\"#5DADE2\", label=\"%lg\"]; \n",
-                       node->value.data.number );
+            DOT_PRINT( "fillcolor=\"#5DADE2\", label=\"%lg\"]; \n", node->value.data.number );
             break;
         case NODE_VARIABLE:
-            DOT_PRINT( "fillcolor=\"#82E0AA\", label=\"`%c`\"]; \n",
-                       node->value.data.variable );
+            DOT_PRINT( "fillcolor=\"#82E0AA\", label=\"`%c`\"]; \n", node->value.data.variable );
             break;
         case NODE_OPERATION:
             DOT_PRINT( "fillcolor=\"#F5B041\", label=\"%s\"]; \n",
@@ -201,13 +198,13 @@ static void NodeInitDot( const Node_t *node, FILE *dot_stream ) {
                "ALIGN=\"CENTER\"> \n" );
 
     DOT_PRINT( "\t\t<TR> \n" );
-    DOT_PRINT( "\t\t\t<TD PORT=\"idx\" BGCOLOR=\"#%X\">idx=0x%lX</TD> \n",
-               my_crc32_ptr( node ), (uintptr_t)node );
+    DOT_PRINT( "\t\t\t<TD PORT=\"idx\" BGCOLOR=\"#%X\">idx=0x%lX</TD> \n", my_crc32_ptr( node ),
+               (uintptr_t)node );
     DOT_PRINT( "\t\t</TR> \n" );
 
     DOT_PRINT( "\t\t<TR> \n" );
-    DOT_PRINT( "\t\t\t<TD PORT=\"parent\" BGCOLOR=\"#%X\">parent=0x%lX</TD> \n",
-               my_crc32_ptr( node->parent ), (uintptr_t)node->parent );
+    DOT_PRINT( "\t\t\t<TD PORT=\"parent\" BGCOLOR=\"#%X\">parent=0x%lX</TD> \n", my_crc32_ptr( node->parent ),
+               (uintptr_t)node->parent );
     DOT_PRINT( "\t\t</TR> \n" );
 
     DOT_PRINT( "\t\t<TR> \n" );
@@ -216,28 +213,24 @@ static void NodeInitDot( const Node_t *node, FILE *dot_stream ) {
         case NODE_NUMBER:
             DOT_PRINT( "\t\t\t<TD PORT=\"type\">type=NUMBER</TD> \n" );
             DOT_PRINT( "\t\t</TR> \n\t\t<TR> \n" );
-            DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=%lg</TD> \n",
-                       node->value.data.number );
+            DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=%lg</TD> \n", node->value.data.number );
             break;
         case NODE_VARIABLE:
             DOT_PRINT( "\t\t\t<TD PORT=\"type\">type=VARIABLE</TD> \n" );
             DOT_PRINT( "\t\t</TR> \n\t\t<TR> \n" );
-            DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=`%c`</TD> \n",
-                       node->value.data.variable );
+            DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=`%c`</TD> \n", node->value.data.variable );
             break;
         case NODE_OPERATION: {
             DOT_PRINT( "\t\t\t<TD PORT=\"type\">type=OPERATION</TD> \n" );
             DOT_PRINT( "\t\t</TR> \n\t\t<TR> \n" );
             DOT_PRINT( "\t\t\t<TD PORT=\"value\">value=%s</TD> \n",
-                       node->value.data.operation >= 0
-                           ? operations_txt[node->value.data.operation]
-                           : "NOPE" );
+                       node->value.data.operation >= 0 ? operations_txt[node->value.data.operation]
+                                                       : "NOPE" );
             break;
         }
         case NODE_UNKNOWN:
         default:
-            DOT_PRINT(
-                "<TD PORT=\"type\" BGCOLOR=\"#FF0000\">type=UNKOWN</TD> \n" );
+            DOT_PRINT( "<TD PORT=\"type\" BGCOLOR=\"#FF0000\">type=UNKOWN</TD> \n" );
             break;
     }
 
@@ -251,15 +244,13 @@ static void NodeInitDot( const Node_t *node, FILE *dot_stream ) {
 
     DOT_PRINT( "\t\t\t\t\t\t<TD PORT=\"left\" BGCOLOR=\"#%X\" "
                "ALIGN=\"CENTER\">%lX</TD> \n",
-               ( node->left == 0 ? fill_color : my_crc32_ptr( node->left ) ),
-               (uintptr_t)node->left );
+               ( node->left == 0 ? fill_color : my_crc32_ptr( node->left ) ), (uintptr_t)node->left );
 
     DOT_PRINT( "\t\t\t\t\t\t<TD><FONT POINT-SIZE=\"10\">│</FONT></TD> \n" );
 
     DOT_PRINT( "\t\t\t\t\t\t<TD PORT=\"right\" BGCOLOR=\"#%X\" "
                "ALIGN=\"CENTER\">%lX</TD> \n",
-               ( node->right == 0 ? fill_color : my_crc32_ptr( node->right ) ),
-               (uintptr_t)node->right );
+               ( node->right == 0 ? fill_color : my_crc32_ptr( node->right ) ), (uintptr_t)node->right );
 
     DOT_PRINT( "\t\t\t\t\t</TR> \n" );
     DOT_PRINT( "\t\t\t\t</TABLE> \n" );
@@ -274,25 +265,21 @@ static void NodeInitDot( const Node_t *node, FILE *dot_stream ) {
 static void NodeBondInitDot( const Node_t *node, FILE *dot_stream ) {
 #ifdef _SIMPLIFIED_DUMP
     if ( node->left ) {
-        DOT_PRINT( "\tnode_%lX -> node_%lX;\n", (uintptr_t)node,
-                   (uintptr_t)node->left );
+        DOT_PRINT( "\tnode_%lX -> node_%lX;\n", (uintptr_t)node, (uintptr_t)node->left );
         NodeDumpRecursively( node->left, dot_stream );
     }
     if ( node->right ) {
-        DOT_PRINT( "\tnode_%lX -> node_%lX;\n", (uintptr_t)node,
-                   (uintptr_t)node->right );
+        DOT_PRINT( "\tnode_%lX -> node_%lX;\n", (uintptr_t)node, (uintptr_t)node->right );
         NodeDumpRecursively( node->right, dot_stream );
     }
 #else
     if ( node->left ) {
-        DOT_PRINT( "\tnode_%lX:left:s->node_%lX\n", (uintptr_t)node,
-                   (uintptr_t)node->left );
+        DOT_PRINT( "\tnode_%lX:left:s->node_%lX\n", (uintptr_t)node, (uintptr_t)node->left );
         NodeDumpRecursively( node->left, dot_stream );
     }
 
     if ( node->right ) {
-        DOT_PRINT( "\tnode_%lX:right:s->node_%lX\n", (uintptr_t)node,
-                   (uintptr_t)node->right );
+        DOT_PRINT( "\tnode_%lX:right:s->node_%lX\n", (uintptr_t)node, (uintptr_t)node->right );
         NodeDumpRecursively( node->right, dot_stream );
     }
 #endif
@@ -316,8 +303,7 @@ static void TreeSaveNode( const Node_t *node, FILE *stream, bool *error ) {
             fprintf( stream, "%c ", node->value.data.variable );
             break;
         case NODE_OPERATION:
-            fprintf( stream, "%s ",
-                     operations_txt[node->value.data.operation] );
+            fprintf( stream, "%s ", operations_txt[node->value.data.operation] );
             break;
 
         case NODE_UNKNOWN:
@@ -363,11 +349,11 @@ static void CleanSpace( char **position ) {
         ( *position )++;
 }
 
-#define OP_IS_IT( str, name, ... )                                             \
-    if ( strncmp( *current_position, str, strlen( str ) ) == 0 ) {             \
-        read_bytes = strlen( str );                                            \
-        PRINT( "Parse operation: %s \n", str );                                \
-        return name;                                                           \
+#define OP_IS_IT( str, name, ... )                                                                           \
+    if ( strncmp( *current_position, str, strlen( str ) ) == 0 ) {                                           \
+        read_bytes = strlen( str );                                                                          \
+        PRINT( "Parse operation: %s \n", str );                                                              \
+        return name;                                                                                         \
     }
 
 static OperationType IsItOperation( char **current_position ) {
@@ -389,8 +375,7 @@ static TreeData_t NodeParseValue( char **current_position ) {
     CleanSpace( current_position );
 
     int read_bytes = 0;
-    if ( sscanf( *current_position, " %lf%n", &( value.data.number ),
-                 &read_bytes ) >= 1 ) {
+    if ( sscanf( *current_position, " %lf%n", &( value.data.number ), &read_bytes ) >= 1 ) {
         PRINT( "Parse number: %lg \n", value.data.number );
         value.type = NODE_NUMBER;
         ( *current_position ) += read_bytes;
@@ -421,21 +406,20 @@ static TreeData_t NodeParseValue( char **current_position ) {
 }
 
 #ifdef _DEBUG
-#define INTERMIDIATE_DUMP( node, ... )                                         \
-    Tree_t temp_tree = {};                                                     \
-    temp_tree.root = node;                                                     \
-    temp_tree.current_position = tree->current_position;                       \
-    temp_tree.logging.log_file = tree->logging.log_file;                       \
-    temp_tree.logging.img_log_path = tree->logging.img_log_path;               \
-    temp_tree.image_number = tree->image_number++;                             \
-    TreeDump( &temp_tree, ##__VA_ARGS__ );                                     \
+#define INTERMIDIATE_DUMP( node, ... )                                                                       \
+    Tree_t temp_tree = {};                                                                                   \
+    temp_tree.root = node;                                                                                   \
+    temp_tree.current_position = tree->current_position;                                                     \
+    temp_tree.logging.log_file = tree->logging.log_file;                                                     \
+    temp_tree.logging.img_log_path = tree->logging.img_log_path;                                             \
+    temp_tree.image_number = tree->image_number++;                                                           \
+    TreeDump( &temp_tree, ##__VA_ARGS__ );                                                                   \
     tree->logging.log_file = temp_tree.logging.log_file;
 #else
 #define INTEDMIDIATE_DUMP( ... )
 #endif
 
-static Node_t *TreeParseNode( char **current_position, bool *error,
-                              Node_t *parent ) {
+static Node_t *TreeParseNode( char **current_position, bool *error, Node_t *parent ) {
     PRINT( "\n" );
     PRINT( "Сurrent position status: `%s` \n", *current_position );
 
@@ -482,15 +466,13 @@ static Node_t *TreeParseNode( char **current_position, bool *error,
         }
         ( *current_position )++;
 
-        PRINT( "Сurrent position status after parsing new node: `%s` \n",
-               *current_position );
+        PRINT( "Сurrent position status after parsing new node: `%s` \n", *current_position );
         // INTERMIDIATE_DUMP( node, "After parsing new node" );
 
         return node;
     } else if ( strncmp( *current_position, "nil", 3 ) == 0 ) {
         *current_position += 3;
-        PRINT( "Сurrent position status after parsing new node: `%s` \n",
-               *current_position );
+        PRINT( "Сurrent position status after parsing new node: `%s` \n", *current_position );
         return NULL;
     } else {
         *error = true;

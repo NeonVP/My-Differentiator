@@ -1,75 +1,95 @@
-#include <string.h>
+#include <stdio.h>
 #include <ctype.h>
+#include <string.h>
+#include <math.h>
 
-#include "Differentiator.h"
 #include "DebugUtils.h"
+#include "Differentiator.h"
 #include "Tree.h"
 
-static Node_t* GetGrammar( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetExpression( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetPrimary( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetPow( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetNumber( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error );
-static Node_t* GetVariable( char** cur_pos, Node_t* parent, bool* error );
+static Node_t *GetGrammar( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetExpression( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetTerm( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetPrimary( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetPow( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetNumber( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetFunction( char **cur_pos, Node_t *parent, bool *error );
+static Node_t *GetVariable( char **cur_pos, Node_t *parent, bool *error );
 
-static void SkipSpaces( char** position );
-
-
-Tree_t* ExpressionParser( char* buffer ) {
+Tree_t *ExpressionParser( char *buffer, double *x_min, double *x_max, double *y_min, double *y_max ) {
     my_assert( buffer, "Null pointer on `buffer`" );
 
-    Tree_t* tree = TreeCtor();
+    if ( x_min ) *x_min = -5.0;
+    if ( x_max ) *x_max = 5.0;
+    if ( y_min ) *y_min = -INFINITY; 
+    if ( y_max ) *y_max = INFINITY;
 
-    char* current_position = buffer;
-    bool  error = false;
+    Tree_t *tree = TreeCtor();
+
+    char *current_position = buffer;
+    bool error = false;
     tree->root = GetGrammar( &current_position, NULL, &error );
 
     if ( error ) {
-        PRINT_ERROR( "The database was not considered correct." );
+        PRINT_ERROR( "The expression was not considered correct." );
         TreeDtor( &tree, NULL );
         return NULL;
     }
-    else {
-        PRINT( "The database was considered correct." );
-        return tree;
+
+    PRINT( "Cur_pos: `%s`", current_position );
+
+    SkipSpaces( &( current_position ) );
+
+    int scanf_result = sscanf( current_position, "%lf %lf & %lf %lf", x_min, x_max, y_min, y_max );
+    if ( scanf_result == 4 ) {
+        PRINT( "OK" );
+    } else {
+        PRINT( "NOT OK" );
     }
+
+    PRINT( "y_min = %g; y_max = %g", *y_min, *y_max );
+    PRINT( "x_min = %g; x_max = %g", *x_min, *x_max );
+
+    PRINT( "The expression was considered correct." );
+    return tree;
 }
 
-
-#define SyntaxError( string ) \
-    PRINT_ERROR( "Syntax error in `%s` %s:%d --- `%s`\n", __func__, __FILE__, __LINE__, *string ); \
+#define SyntaxError( string )                                                                                \
+    PRINT_ERROR( "Syntax error in `%s` %s:%d --- `%s`\n", __func__, __FILE__, __LINE__, *string );           \
     *error = true;
 
-#define DEBUG_PRINT_PARSE PRINT( "\n" ); PRINT( "Current position: `%s`", *cur_pos );
+#define DEBUG_PRINT_PARSE PRINT( "%s ~ Current position: `%s`", __func__, *cur_pos );
 
-static Node_t* GetGrammar( char **cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
+static Node_t *GetGrammar( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
+    my_assert( error, "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    Node_t* node = GetExpression( cur_pos, parent, error );
+    Node_t *node = GetExpression( cur_pos, parent, error );
 
     SkipSpaces( cur_pos );
 
-    if ( **cur_pos != '\0' ) {
+    if ( **cur_pos != '$' ) {
         SyntaxError( cur_pos );
     }
+
+    ( *cur_pos )++;
 
     return node;
 }
 
-static Node_t* GetExpression( char** cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
+static Node_t *GetExpression( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
+    my_assert( error, "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    Node_t* node = GetTerm( cur_pos, parent, error );
+    DEBUG_PRINT_PARSE;
+
+    Node_t *node = GetTerm( cur_pos, parent, error );
 
     SkipSpaces( cur_pos );
 
@@ -77,33 +97,37 @@ static Node_t* GetExpression( char** cur_pos, Node_t* parent, bool* error ) {
         TreeData_t op_value = {};
         op_value.type = NODE_OPERATION;
         op_value.data.operation = ( **cur_pos == '+' ) ? OP_ADD : OP_SUB;
-        (*cur_pos)++;
+        ( *cur_pos )++;
 
         SkipSpaces( cur_pos );
 
-        Node_t* new_root = NodeCreate( op_value, parent );
+        Node_t *new_root = NodeCreate( op_value, parent );
         new_root->left = node;
         node->parent = new_root;
 
         SkipSpaces( cur_pos );
 
-        Node_t* right = GetTerm( cur_pos, new_root, error );
+        Node_t *right = GetTerm( cur_pos, new_root, error );
         new_root->right = right;
 
-        node = new_root; 
+        node = new_root;
     }
 
     return node;
 }
 
-static Node_t* GetPow( char** cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
+static Node_t *GetPow( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
+    my_assert( error, "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
-    
-    Node_t* node = GetPrimary( cur_pos, parent, error );
+
+    DEBUG_PRINT_PARSE;
+
+    Node_t *node = GetPrimary( cur_pos, parent, error );
+
+    SkipSpaces( cur_pos );
 
     if ( **cur_pos == '^' ) {
         ( *cur_pos )++;
@@ -114,13 +138,13 @@ static Node_t* GetPow( char** cur_pos, Node_t* parent, bool* error ) {
 
         SkipSpaces( cur_pos );
 
-        Node_t* new_root = NodeCreate(op_value, parent);
+        Node_t *new_root = NodeCreate( op_value, parent );
         new_root->left = node;
         node->parent = new_root;
 
         SkipSpaces( cur_pos );
 
-        Node_t* right = GetPow( cur_pos, new_root, error );
+        Node_t *right = GetPow( cur_pos, new_root, error );
         new_root->right = right;
 
         node = new_root;
@@ -129,14 +153,16 @@ static Node_t* GetPow( char** cur_pos, Node_t* parent, bool* error ) {
     return node;
 }
 
-static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
+static Node_t *GetTerm( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
+    my_assert( error, "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    Node_t* node = GetPow( cur_pos, parent, error );
+    DEBUG_PRINT_PARSE;
+
+    Node_t *node = GetPow( cur_pos, parent, error );
 
     SkipSpaces( cur_pos );
 
@@ -150,13 +176,13 @@ static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error ) {
 
         SkipSpaces( cur_pos );
 
-        Node_t* new_root = NodeCreate(op_value, parent);
+        Node_t *new_root = NodeCreate( op_value, parent );
         new_root->left = node;
         node->parent = new_root;
 
         SkipSpaces( cur_pos );
 
-        Node_t* right = GetPow( cur_pos, new_root, error );
+        Node_t *right = GetPow( cur_pos, new_root, error );
         new_root->right = right;
 
         node = new_root;
@@ -165,92 +191,100 @@ static Node_t* GetTerm( char** cur_pos, Node_t* parent, bool* error ) {
     return node;
 }
 
-static Node_t* GetPrimary( char** cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
+static Node_t *GetPrimary( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
+    my_assert( error, "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
     DEBUG_PRINT_PARSE;
 
-    Node_t* func = GetFunction( cur_pos, parent, error );
-    if ( func )   return func;
-    if ( *error ) return NULL;
+    Node_t *func = GetFunction( cur_pos, parent, error );
+    if ( func )
+        return func;
+    if ( *error )
+        return NULL;
 
     if ( **cur_pos == '(' ) {
         ( *cur_pos )++;
-
         SkipSpaces( cur_pos );
 
-        Node_t* node = GetExpression( cur_pos, parent, error );
-        if ( *error ) return NULL;
+        Node_t *node = GetExpression( cur_pos, parent, error );
+        if ( *error )
+            return NULL;
 
         SkipSpaces( cur_pos );
 
         if ( **cur_pos != ')' ) {
-            SyntaxError(cur_pos);
+            SyntaxError( cur_pos );
             return NULL;
         }
-        (*cur_pos)++;
+        ( *cur_pos )++;
         return node;
     }
-    else {
-        SkipSpaces( cur_pos );
-
-        Node_t* node = GetVariable( cur_pos, parent, error );
-        if ( node ) return node;
-        return GetNumber( cur_pos, parent, error );
-    }
-}
-
-static Node_t* GetNumber( char** cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
-    my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
-    char* start = *cur_pos;
-    char* end   = NULL;
-    double val  = strtod( start, &end );
+    Node_t *node = GetVariable( cur_pos, parent, error );
+    if ( node )
+        return node;
+    return GetNumber( cur_pos, parent, error );
+}
+
+static Node_t *GetNumber( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
+    my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
+    my_assert( error, "Null pointer on `error`" );
+
+    SkipSpaces( cur_pos );
+
+    DEBUG_PRINT_PARSE;
+
+    char *start = *cur_pos;
+    char *end = NULL;
+    double val = strtod( start, &end );
 
     if ( end == start ) {
-        return NULL; 
+        return NULL;
     }
 
-    *cur_pos = end; 
+    *cur_pos = end;
 
     TreeData_t value = {};
     value.type = NODE_NUMBER;
     value.data.number = val;
 
-    Node_t* node = NodeCreate( value, parent );
+    Node_t *node = NodeCreate( value, parent );
     if ( !node ) {
         *error = true;
         return NULL;
     }
 
+    PRINT( "Number - %lg", val );
+
     return node;
 }
 
-#define OPERATION_COMPARE( str, name, value, is_function, num_args, ... )    \
-    if ( operation == OP_NOPE && is_function == Function &&                  \
-        strncmp( *cur_pos, str, strlen( str ) ) == 0 ) {                     \
-        operation = name;                                                    \
-        func_len  = ( int ) strlen( str );                                   \
-        args_count = num_args;                                               \
+#define OPERATION_COMPARE( str, name, value, is_function, num_args, ... )                                    \
+    if ( operation == OP_NOPE && is_function == Function && strncmp( *cur_pos, str, strlen( str ) ) == 0 ) { \
+        operation = name;                                                                                    \
+        func_len = (int)strlen( str );                                                                       \
+        args_count = num_args;                                                                               \
+        PRINT( "Function - %s", str );                                                                       \
     }
 
-static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
-    my_assert( cur_pos,  "Null pointer on `cur_pos`" );
+static Node_t *GetFunction( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
     my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
-    my_assert( error,    "Null pointer on `error`" );
+    my_assert( error, "Null pointer on `error`" );
 
     SkipSpaces( cur_pos );
 
+    DEBUG_PRINT_PARSE;
+
     OperationType operation = OP_NOPE;
-    int func_len   = 0;
+    int func_len = 0;
     int args_count = 0;
 
     INIT_OPERATIONS( OPERATION_COMPARE );
@@ -265,7 +299,7 @@ static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
     val.type = NODE_OPERATION;
     val.data.operation = operation;
 
-    Node_t* func_node = NodeCreate( val, parent );
+    Node_t *func_node = NodeCreate( val, parent );
     if ( !func_node ) {
         *error = true;
         return NULL;
@@ -282,17 +316,17 @@ static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
     SkipSpaces( cur_pos );
 
     if ( args_count == ONE_ARG || args_count == TWO_ARGS ) {
-        Node_t* arg1 = GetExpression( cur_pos, func_node, error );
+        Node_t *arg1 = GetExpression( cur_pos, func_node, error );
         if ( *error || !arg1 ) {
             NodeDelete( func_node, NULL, NULL );
             return NULL;
         }
 
         func_node->left = arg1;
-        arg1->parent    = func_node;
+        arg1->parent = func_node;
 
         if ( args_count == TWO_ARGS ) {
-            if (**cur_pos != ',') {
+            if ( **cur_pos != ',' ) {
                 SyntaxError( cur_pos );
                 *error = true;
                 NodeDelete( func_node, NULL, NULL );
@@ -300,14 +334,14 @@ static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
             }
             ( *cur_pos )++;
 
-            Node_t* arg2 = GetExpression( cur_pos, func_node, error );
+            Node_t *arg2 = GetExpression( cur_pos, func_node, error );
             if ( *error || !arg2 ) {
                 NodeDelete( func_node, NULL, NULL );
                 return NULL;
             }
 
             func_node->right = arg2;
-            arg2->parent     = func_node;
+            arg2->parent = func_node;
         }
     }
 
@@ -324,10 +358,12 @@ static Node_t* GetFunction( char** cur_pos, Node_t* parent, bool* error ) {
 
 #undef OPERATION_COMPARE
 
-static Node_t* GetVariable(char** cur_pos, Node_t* parent, bool* error) {
-    my_assert(cur_pos,  "Null pointer on `cur_pos`");
-    my_assert(*cur_pos, "Null pointer on `*cur_pos`");
-    my_assert(error,    "Null pointer on `error`");
+static Node_t *GetVariable( char **cur_pos, Node_t *parent, bool *error ) {
+    my_assert( cur_pos, "Null pointer on `cur_pos`" );
+    my_assert( *cur_pos, "Null pointer on `*cur_pos`" );
+    my_assert( error, "Null pointer on `error`" );
+
+    DEBUG_PRINT_PARSE;
 
     if ( isalpha( **cur_pos ) ) {
         TreeData_t value = {};
@@ -336,19 +372,20 @@ static Node_t* GetVariable(char** cur_pos, Node_t* parent, bool* error) {
 
         ( *cur_pos )++;
 
-        Node_t* node = NodeCreate( value, parent );
+        Node_t *node = NodeCreate( value, parent );
         if ( !node ) {
             *error = true;
             return NULL;
         }
 
+        PRINT( "Variable - %c", value.data.variable );
         return node;
     }
 
     return NULL;
 }
 
-static void SkipSpaces( char** position ) {
-    while ( isspace( **position ) ) 
+void SkipSpaces( char **position ) {
+    while ( isspace( **position ) )
         ( *position )++;
 }

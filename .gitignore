@@ -11,8 +11,4 @@ diff-release
 diff-simple-dump
 *.png
 
-main.pdf
-main.log
-main.out
-main.aux
-main.toc
+/tex

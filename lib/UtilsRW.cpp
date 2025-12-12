@@ -12,7 +12,7 @@ int MakeDirectory( const char* path ) {
         }
     }
 
-    PRINT( "Directory `%s` was created. \n", path );
+    PRINT( "Directory `%s` was created.", path );
     return 0;
 }
 

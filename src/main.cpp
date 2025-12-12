@@ -9,16 +9,16 @@ int main() {
     assert( diff && diff->expr_tree && diff->expr_tree->root && "Tree is empty!" );
 
     DifferentiatiorDump( diff, DUMP_ORIGINAL, "After creation expr_tree" );
-    DifferentiatorAddOrigExpression( diff, 1 );
 
+    DifferentiatorAddOrigExpression( diff, 3 );
     DifferentiatiorDump( diff, DUMP_DIFFERENTIATED, "After optimization" );
 
     DifferentiatorAddEvaluation( diff, 'x' );
-    DifferentiatorAddTaylorSeries( diff, 'x', 3 );
+    DifferentiatorAddTaylorSeries( diff, 'x', 7 );
 
-    DifferentiatorPlotFunctionAndTaylor( diff, 'x', -5.0, 5.0, 200, "plot.png" );
+    DifferentiatorPlotFunctionAndTaylor( diff, 'x', diff->plot_x_min, diff->plot_x_max, diff->plot_y_min,
+                                         diff->plot_y_max, 250, "tex/plot.png" );
 
     DifferentiatorDtor( &diff );
-
     return 0;
 }

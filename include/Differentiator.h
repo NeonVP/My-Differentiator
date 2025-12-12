@@ -42,6 +42,11 @@ struct Differentiator_t {
         char *current_position;
     } expr_info;
 
+    double plot_x_min;
+    double plot_x_max;
+    double plot_y_min; 
+    double plot_y_max; 
+
     struct Latex_t latex;
 
 #ifdef _DEBUG
@@ -58,7 +63,7 @@ Differentiator_t *DifferentiatorCtor( const char *expr_filename );
 void DifferentiatorDtor( Differentiator_t **diff );
 
 // EBNF
-Tree_t *ExpressionParser( char *buffer );
+Tree_t *ExpressionParser( char *buffer, double *x_min, double *x_max, double *y_min, double *y_max );
 
 // Variable Table
 bool VarTableGet( VarTable_t *table, char name, double *value );
@@ -96,8 +101,10 @@ void DifferentiatorAddTaylorSeries( Differentiator_t *diff, char var, int order 
 
 // GNU PLOT
 void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var, double x_min, double x_max,
-                                          int n_points, const char *output_image );
+                                          double y_min, double y_max, int n_points,
+                                          const char *output_image );
 
 int CompareDoubleToDouble( double a, double b, double eps = 1e-10 );
+void SkipSpaces( char **position );
 
 #endif
