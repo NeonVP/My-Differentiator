@@ -1,18 +1,17 @@
 #include <assert.h>
-#include <cmath>
-#include <cstddef>
+#include <math.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 
-#include "Differentiator.h"
 #include "DebugUtils.h"
+#include "Differentiator.h"
 #include "Tree.h"
 #include "UtilsRW.h"
 
-#define NUM_( n ) NodeCreate( MakeNumber(n), NULL )
-#define VAR_( v ) NodeCreate( MakeVariable(v), NULL )
+#define NUM_( n ) NodeCreate( MakeNumber( n ), NULL )
+#define VAR_( v ) NodeCreate( MakeVariable( v ), NULL )
 
 #define ADD_( L, R ) MakeNode( OP_ADD, L, R )
 #define SUB_( L, R ) MakeNode( OP_SUB, L, R )
@@ -23,25 +22,24 @@
 #define cL NodeCopy( node->left )
 #define cR NodeCopy( node->right )
 
-#define dL DifferentiateNode( node->left,  independent_var, diff, order )
+#define dL DifferentiateNode( node->left, independent_var, diff, order )
 #define dR DifferentiateNode( node->right, independent_var, diff, order )
 
 // Variable Table
-static void VarTableCtor( VarTable_t* table, size_t initial_capacity );
-static void VarTableDtor( VarTable_t* table );
+static void VarTableCtor( VarTable_t *table, size_t initial_capacity );
+static void VarTableDtor( VarTable_t *table );
 
-static void AddVarsToTableFromNode( Node_t* node, VarTable_t* table );
-
+static void AddVarsToTableFromNode( Node_t *node, VarTable_t *table );
 
 ON_DEBUG( static Log_t DumpCtor() );
-ON_DEBUG( static void DumpDtor( Log_t* logging ) );
+ON_DEBUG( static void DumpDtor( Log_t *logging ) );
 
 Differentiator_t *DifferentiatorCtor( const char *expr_filename ) {
     my_assert( expr_filename, "Null pointer on `expr_filename`" );
 
     char *buffer = ReadToBuffer( expr_filename );
 
-    double x_min = -5.0,      x_max = 5.0;
+    double x_min = -5.0, x_max = 5.0;
     double y_min = -INFINITY, y_max = INFINITY;
 
     Tree_t *expr_tree = ExpressionParser( buffer, &x_min, &x_max, &y_min, &y_max );
@@ -60,10 +58,12 @@ Differentiator_t *DifferentiatorCtor( const char *expr_filename ) {
     diff->expr_tree = expr_tree;
     diff->expr_info.buffer = buffer;
 
-    diff->plot_x_min = x_min;   diff->plot_x_max = x_max;
-    diff->plot_y_min = y_min;   diff->plot_y_max = y_max;
+    diff->plot_x_min = x_min;
+    diff->plot_x_max = x_max;
+    diff->plot_y_min = y_min;
+    diff->plot_y_max = y_max;
 
-    VarTableCtor( &( diff->var_table ), 4 );
+    VarTableCtor( &( diff->var_table ), 5 );
 
     diff->latex = LatexCtor();
     ON_DEBUG( diff->logging = DumpCtor(); )
@@ -71,7 +71,7 @@ Differentiator_t *DifferentiatorCtor( const char *expr_filename ) {
     return diff;
 }
 
-void DifferentiatorDtor( Differentiator_t** diff ) {
+void DifferentiatorDtor( Differentiator_t **diff ) {
     my_assert( diff, "Null pointer on `diff`" );
     my_assert( *diff, "An attempt to launch destructor for a null-terminated struct" );
 
@@ -89,16 +89,16 @@ void DifferentiatorDtor( Differentiator_t** diff ) {
     *diff = NULL;
 }
 
-static void VarTableCtor( VarTable_t* table, size_t initial_capacity ) {
+static void VarTableCtor( VarTable_t *table, size_t initial_capacity ) {
     my_assert( table, "Null pointer on `table`" );
 
-    table->data = (Variable_t*) calloc( initial_capacity, sizeof( Variable_t ) );
+    table->data = (Variable_t *)calloc( initial_capacity, sizeof( Variable_t ) );
     table->number_of_variables = 0;
     table->capacity = initial_capacity;
 }
 
-static void VarTableDtor( VarTable_t* table ) {
-    my_assert( table, "Null pointer on `tree`" );
+static void VarTableDtor( VarTable_t *table ) {
+    my_assert( table, "Null pointer on `table`" );
 
     free( table->data );
     table->data = NULL;
@@ -106,8 +106,9 @@ static void VarTableDtor( VarTable_t* table ) {
     table->capacity = 0;
 }
 
-static void AddVarsToTableFromNode( Node_t* node, VarTable_t* table ) {
-    if ( !node ) return;
+static void AddVarsToTableFromNode( Node_t *node, VarTable_t *table ) {
+    if ( !node )
+        return;
 
     if ( node->value.type == NODE_VARIABLE ) {
         VarTableSet( table, node->value.data.variable, 0.0 );
@@ -117,34 +118,36 @@ static void AddVarsToTableFromNode( Node_t* node, VarTable_t* table ) {
     AddVarsToTableFromNode( node->right, table );
 }
 
-void VarTableSet( VarTable_t* table, char name, double value ) {
+void VarTableSet( VarTable_t *table, char name, double value ) {
     my_assert( table, "Null pointer on `table`" );
 
     for ( size_t idx = 0; idx < table->number_of_variables; idx++ ) {
-        if ( table->data[ idx ].name == name ) {
-            table->data[ idx ].value = value;
+        if ( table->data[idx].name == name ) {
+            table->data[idx].value = value;
             return;
         }
     }
 
     if ( table->number_of_variables >= table->capacity ) {
         size_t new_capacity = table->capacity * 2;
-        if ( new_capacity == 0 ) new_capacity = 4;
-        table->data = (Variable_t*) realloc( table->data, new_capacity * sizeof( Variable_t ) );
+        if ( new_capacity == 0 )
+            new_capacity = 4;
+        table->data = (Variable_t *)realloc( table->data, new_capacity * sizeof( Variable_t ) );
         table->capacity = new_capacity;
     }
 
-    table->data[ table->number_of_variables ].name = name;
-    table->data[ table->number_of_variables ].value = value;
+    table->data[table->number_of_variables].name = name;
+    table->data[table->number_of_variables].value = value;
     table->number_of_variables++;
 }
 
-bool VarTableGet( VarTable_t* table, char name, double* value ) {
-    if ( !table || !value ) return false;
+bool VarTableGet( VarTable_t *table, char name, double *value ) {
+    if ( !table || !value )
+        return false;
 
     for ( size_t idx = 0; idx < table->number_of_variables; idx++ ) {
-        if ( table->data[ idx ].name == name ) {
-            *value = table->data[ idx ].value;
+        if ( table->data[idx].name == name ) {
+            *value = table->data[idx].value;
             return true;
         }
     }
@@ -152,61 +155,60 @@ bool VarTableGet( VarTable_t* table, char name, double* value ) {
     return false;
 }
 
-void VarTableAskUser( VarTable_t* table ) {
+void VarTableAskUser( VarTable_t *table ) {
     my_assert( table, "Null pointer on `table`" );
 
     for ( size_t idx = 0; idx < table->number_of_variables; idx++ ) {
         printf( "Enter value for variable %c: ", table->data[idx].name );
-        if ( scanf( "%lf", &table->data[ idx ].value ) != 1 ) {
-            printf( "Invalid input. Using 0.0 for %c\n", table->data[ idx  ].name );
-            table->data[ idx ].value = 0.0;
+        if ( scanf( "%lf", &table->data[idx].value ) != 1 ) {
+            printf( "Invalid input. Using 0.0 for %c\n", table->data[idx].name );
+            table->data[idx].value = 0.0;
 
             int c;
-            while ( ( c = getchar() ) != '\n' && c != EOF ) {}
+            while ( ( c = getchar() ) != '\n' && c != EOF ) {
+            }
         }
     }
 }
 
-static double Factorial( const double n ) {
-    assert( isfinite( n ) && "An infinite number" );
+static double Factorial( const uint n ) {
     double result = 1;
-    for ( int i = 2; i <= n; i++ ) 
+    for ( uint i = 2; i <= n; i++ )
         result *= i;
 
     return result;
 }
 
-Tree_t* DifferentiatorBuildTaylorTree( Differentiator_t* diff, char var, double point, int order ) {
+Tree_t *DifferentiatorBuildTaylorTree( Differentiator_t *diff, char var, double point, int order ) {
     my_assert( diff, "Null pointer on `diff`" );
 
     PRINT( "Start building Taylor Tree" );
 
-    Node_t* result =  NUM_( 0 );
+    Node_t *result = NUM_( 0 );
 
     for ( int cur_order = 0; cur_order <= order; cur_order++ ) {
         DifferentiateExpression( diff, var, cur_order );
 
         double value = EvaluateTree( diff->diff_tree, diff );
-        double coeff = value / Factorial( cur_order );
-        Node_t* coeff_node = NUM_( coeff );
+        double coeff = value / Factorial( (uint)cur_order );
+        Node_t *coeff_node = NUM_( coeff );
 
-        Node_t* term = NULL;
+        Node_t *term = NULL;
 
         if ( cur_order == 0 ) {
             term = coeff_node;
-        }
-        else {
-            Node_t* var_node   = VAR_( var );
-            Node_t* point_node = NUM_( point );
-            Node_t* diff_node  = SUB_( var_node, point_node );
-            Node_t* pow_node   = POW_( diff_node, NUM_( cur_order ) );
+        } else {
+            Node_t *var_node = VAR_( var );
+            Node_t *point_node = NUM_( point );
+            Node_t *diff_node = SUB_( var_node, point_node );
+            Node_t *pow_node = POW_( diff_node, NUM_( cur_order ) );
             term = MUL_( coeff_node, pow_node );
         }
 
         result = ADD_( result, term );
     }
 
-    Tree_t* res_tree = TreeCtor();
+    Tree_t *res_tree = TreeCtor();
     res_tree->root = result;
 
     PRINT( "Finish buldding Taylor tree" );
@@ -219,7 +221,7 @@ static Log_t DumpCtor() {
     Log_t logging = {};
     logging.log_path = strdup( "dump" );
 
-    char buffer[ MAX_LEN_PATH ] = {};
+    char buffer[MAX_LEN_PATH] = {};
 
     snprintf( buffer, MAX_LEN_PATH, "%s/images", logging.log_path );
     logging.img_log_path = strdup( buffer );
@@ -238,7 +240,7 @@ static Log_t DumpCtor() {
     return logging;
 }
 
-static void DumpDtor( Log_t* logging ) {
+static void DumpDtor( Log_t *logging ) {
     my_assert( logging, "Null pointer on `logging" );
 
     int fclose_result = fclose( logging->log_file );
@@ -249,7 +251,6 @@ static void DumpDtor( Log_t* logging ) {
     free( logging->log_path );
     free( logging->img_log_path );
 }
-
 
 #define PRINT_HTML( fmt, ... ) fprintf( diff->logging.log_file, fmt, ##__VA_ARGS__ );
 
@@ -321,7 +322,6 @@ static void PrintCustomMessage( Differentiator_t *diff, const char *format, va_l
 #undef PRINT_HTML
 #endif
 
-
 static Node_t *DifferentiateNode( Node_t *node, char independent_var, Differentiator_t *diff, int order );
 
 Tree_t *DifferentiateExpression( Differentiator_t *diff, char independent_var, int order ) {
@@ -354,12 +354,14 @@ Tree_t *DifferentiateExpression( Differentiator_t *diff, char independent_var, i
     return diff->diff_tree;
 }
 
-Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
-    Node_t* n = NodeCreate( MakeOperation( op ), NULL );
+Node_t *MakeNode( OperationType op, Node_t *L, Node_t *R ) {
+    Node_t *n = NodeCreate( MakeOperation( op ), NULL );
     n->left = L;
-    if (L) L->parent = n;
+    if ( L )
+        L->parent = n;
     n->right = R;
-    if (R) R->parent = n;
+    if ( R )
+        R->parent = n;
     return n;
 }
 
@@ -375,88 +377,104 @@ Node_t* MakeNode( OperationType op, Node_t* L, Node_t* R ) {
     fprintf( diff->latex.tex_file, "\\end{autobreak} \n\n" );                                                \
     fprintf( diff->latex.tex_file, "\\end{align*} \n\n" );
 
-static Node_t* DifferentiateNode( Node_t* node, char independent_var, Differentiator_t* diff, int order ) {
-    if (!node)
+static Node_t *DifferentiateNode( Node_t *node, char independent_var, Differentiator_t *diff, int order ) {
+    if ( !node )
         return NULL;
 
-    Node_t* result = NULL;
+    Node_t *result = NULL;
 
     switch ( node->value.type ) {
-        case NODE_NUMBER: result = NUM_(0); break;
+        case NODE_NUMBER:
+            result = NUM_( 0 );
+            break;
 
-        case NODE_VARIABLE: result = ( node->value.data.variable == independent_var ) ? NUM_(1) : NUM_(0); break;
+        case NODE_VARIABLE:
+            result = ( node->value.data.variable == independent_var ) ? NUM_( 1 ) : NUM_( 0 );
+            break;
 
         case NODE_OPERATION: {
             switch ( node->value.data.operation ) {
-                case OP_ADD: result = ADD_( dL, dR ); break;
-                case OP_SUB: result = SUB_( dL, dR ); break;
-                case OP_MUL: result = ADD_(
-                                          MUL_( dL, cR ),
-                                          MUL_( cL, dR )
-                                      ); break;
-                case OP_DIV: result = DIV_(
-                                          SUB_( MUL_( dL, cR ), MUL_( cL, dR ) ),
-                                          MUL_( cR, cR )
-                                      ); break;
+                case OP_ADD:
+                    result = ADD_( dL, dR );
+                    break;
+                case OP_SUB:
+                    result = SUB_( dL, dR );
+                    break;
+                case OP_MUL:
+                    result = ADD_( MUL_( dL, cR ), MUL_( cL, dR ) );
+                    break;
+                case OP_DIV:
+                    result = DIV_( SUB_( MUL_( dL, cR ), MUL_( cL, dR ) ), MUL_( cR, cR ) );
+                    break;
                 case OP_POW: {
-                    Node_t* base = node->left;
-                    Node_t* exp  = node->right;
+                    Node_t *base = node->left;
+                    Node_t *exp = node->right;
                     bool base_is_const = ( base->value.type == NODE_NUMBER );
-                    bool exp_is_const  = ( exp->value.type  == NODE_NUMBER );
+                    bool exp_is_const = ( exp->value.type == NODE_NUMBER );
 
                     if ( exp_is_const ) {
                         double c = exp->value.data.number;
-                        result = MUL_(
-                                     MUL_( NUM_( c ), POW_( cL, NUM_( c - 1 ) ) ),
-                                     dL
-                                 ); break;
+                        result = MUL_( MUL_( NUM_( c ), POW_( cL, NUM_( c - 1 ) ) ), dL );
+                        break;
                     }
                     if ( base_is_const ) {
                         double a = base->value.data.number;
-                        result = MUL_(
-                                   MUL_( POW_( NUM_(a), cR ), MakeNode( OP_LN, NUM_(a), NULL ) ),
-                                   dR
-                               ); break;
+                        result =
+                            MUL_( MUL_( POW_( NUM_( a ), cR ), MakeNode( OP_LN, NUM_( a ), NULL ) ), dR );
+                        break;
                     }
-                    result = MUL_(
-                                 POW_( cL, cR ),
-                                 ADD_(
-                                     MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
-                                     MUL_( cR, DIV_( dL, cL ) )
-                                 )
-                             ); break;
+                    result = MUL_( POW_( cL, cR ), ADD_( MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
+                                                         MUL_( cR, DIV_( dL, cL ) ) ) );
+                    break;
                 }
 
                 case OP_LOG:
                     if ( !node->right ) {
-                        result = DIV_( dL, cL ); 
+                        result = DIV_( dL, cL );
                         break;
                     }
-                    result = DIV_(
-                                 SUB_(
-                                     MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
-                                     MUL_( dL, MakeNode( OP_LOG, cR, NULL ) )
-                                 ),
-                                 MUL_( cR, MakeNode( OP_LOG, cL, NULL ) )
-                             ); break;
+                    result = DIV_( SUB_( MUL_( dR, MakeNode( OP_LOG, cL, NULL ) ),
+                                         MUL_( dL, MakeNode( OP_LOG, cR, NULL ) ) ),
+                                   MUL_( cR, MakeNode( OP_LOG, cL, NULL ) ) );
+                    break;
 
-                case OP_LN: result = DIV_( dL, cL ); break;
+                case OP_LN:
+                    result = DIV_( dL, cL );
+                    break;
 
-                case OP_SIN: result = MUL_( 
-                    MakeNode( OP_COS, cL, NULL ), 
-                    dL 
-                ); break;
-                case OP_COS: result = MUL_( NUM_(-1), MUL_( MakeNode( OP_SIN, cL, NULL ), dL ) ); break;
-                case OP_TAN: result = DIV_( dL, POW_( MakeNode( OP_COS, cL, NULL ), NUM_(2) ) ); break;
+                case OP_SIN:
+                    result = MUL_( MakeNode( OP_COS, cL, NULL ), dL );
+                    break;
+                case OP_COS:
+                    result = MUL_( NUM_( -1 ), MUL_( MakeNode( OP_SIN, cL, NULL ), dL ) );
+                    break;
+                case OP_TAN:
+                    result = DIV_( dL, POW_( MakeNode( OP_COS, cL, NULL ), NUM_( 2 ) ) );
+                    break;
 
-                case OP_CTAN: result = MUL_( NUM_(-1), DIV_( dL, POW_( MakeNode( OP_SIN, cL, NULL ), NUM_(2) ) ) ); break;
-                case OP_SH:   result = MUL_( MakeNode( OP_CH, cL, NULL ), dL ); break;
-                case OP_CH:   result = MUL_( MakeNode( OP_SH, cL, NULL ), dL ); break;
+                case OP_CTAN:
+                    result = MUL_( NUM_( -1 ), DIV_( dL, POW_( MakeNode( OP_SIN, cL, NULL ), NUM_( 2 ) ) ) );
+                    break;
+                case OP_SH:
+                    result = MUL_( MakeNode( OP_CH, cL, NULL ), dL );
+                    break;
+                case OP_CH:
+                    result = MUL_( MakeNode( OP_SH, cL, NULL ), dL );
+                    break;
 
-                case OP_ARCSIN:  result = DIV_( dL, POW_( SUB_( NUM_(1), POW_( cL, NUM_(2) ) ), NUM_(-1) ) ); break;
-                case OP_ARCCOS:  result = MUL_( NUM_(-1), DIV_( dL, POW_( SUB_( NUM_(1), POW_( cL, NUM_(2) ) ), NUM_(-1) ) ) ); break;
-                case OP_ARCTAN:  result = DIV_( dL, ADD_( NUM_(1), POW_( cL, NUM_(2) ) ) ); break;
-                case OP_ARCCTAN: result = MUL_( NUM_(-1), DIV_( dL, ADD_( NUM_(1), POW_( cL, NUM_(2) ) ) ) ); break;
+                case OP_ARCSIN:
+                    result = DIV_( dL, POW_( SUB_( NUM_( 1 ), POW_( cL, NUM_( 2 ) ) ), NUM_( -1 ) ) );
+                    break;
+                case OP_ARCCOS:
+                    result = MUL_( NUM_( -1 ),
+                                   DIV_( dL, POW_( SUB_( NUM_( 1 ), POW_( cL, NUM_( 2 ) ) ), NUM_( -1 ) ) ) );
+                    break;
+                case OP_ARCTAN:
+                    result = DIV_( dL, ADD_( NUM_( 1 ), POW_( cL, NUM_( 2 ) ) ) );
+                    break;
+                case OP_ARCCTAN:
+                    result = MUL_( NUM_( -1 ), DIV_( dL, ADD_( NUM_( 1 ), POW_( cL, NUM_( 2 ) ) ) ) );
+                    break;
 
                 default:
                     PRINT_ERROR( "Unknown operation in differentiation!\n" );
@@ -508,12 +526,12 @@ TreeData_t MakeVariable( char variable ) {
 }
 
 int CompareDoubleToDouble( double a, double b, double eps ) {
-    if ( abs( a - b ) < eps ) return 0;
-    if ( a - b > eps )          return 1;
-    if ( a - b < -eps )         return -1;
+    if ( fabs( a - b ) < eps )
+        return 0;
+    if ( a - b > eps )
+        return 1;
+    if ( a - b < -eps )
+        return -1;
 
     return 0;
 }
-
-
-

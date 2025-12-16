@@ -1,8 +1,8 @@
 #include "DebugUtils.h"
 #include "Differentiator.h"
 #include "Tree.h"
-#include <cmath>
-#include <cstdio>
+#include <math.h>
+#include <stdio.h>
 
 static double EvaluateNode( Node_t *node, VarTable_t *var_table );
 

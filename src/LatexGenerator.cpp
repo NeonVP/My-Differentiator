@@ -1,13 +1,13 @@
 #include <assert.h>
 #include <string.h>
-#include <math.h>
 
 #include "DebugUtils.h"
 #include "Differentiator.h"
+#include "UtilsRW.h"
 
 #define LATEX_PRINT( format, ... ) fprintf( latex_file, format, ##__VA_ARGS__ );
 
-#define OPERATIONS_LATEX( str, name, value, is_func, n_args, latex_fmt ) latex_fmt,
+#define OPERATIONS_LATEX( str, name, value, is_func, n_args, latex_fmt, ... ) latex_fmt,
 
 static const char *latex_format[] = { INIT_OPERATIONS( OPERATIONS_LATEX ) };
 
@@ -15,11 +15,12 @@ static const char *latex_format[] = { INIT_OPERATIONS( OPERATIONS_LATEX ) };
 
 static void LatexInsertChildren( const Node_t *node, FILE *latex_file, int parent_priority );
 
-static void LatexHeader( FILE* latex_file );
+static void LatexHeader( FILE *latex_file );
 
 Latex_t LatexCtor() {
     Latex_t latex = {};
     latex.tex_path = strdup( "tex" );
+    MakeDirectory( latex.tex_path );
     char buffer[MAX_LEN_PATH] = {};
     snprintf( buffer, MAX_LEN_PATH, "%s/main.tex", latex.tex_path );
     latex.tex_file = fopen( buffer, "w" );
@@ -27,7 +28,6 @@ Latex_t LatexCtor() {
 
     LatexHeader( latex.tex_file );
 
-    fflush( latex.tex_file );
     return latex;
 }
 
@@ -58,14 +58,17 @@ static void LatexHeader( FILE *latex_file ) {
 void LatexDtor( Latex_t *latex ) {
     my_assert( latex, "Null pointer on `latex`" );
 
-    fprintf( latex->tex_file, "\\begin{ figure }[h !] \n" );
-    fprintf( latex->tex_file, "\\centering  \n" );
-    fprintf( latex->tex_file, "\\includegraphics[width = 0.8\\textwidth]{ plot.png } \n" );
-    fprintf( latex->tex_file, "\\caption{ Графики }\n" );
-    fprintf( latex->tex_file, "\\label{ fig : my_image } \n" );
-    fprintf( latex->tex_file, "\\end{ figure } \n" );
+    FILE *latex_file = latex->tex_file;
 
-                fprintf( latex->tex_file, "\\end{document}\n" );
+    LATEX_PRINT( "\\subsection{\\textbf{Графики функции, касательной в точке, многочлена Тейлора}}" )
+    LATEX_PRINT( "\\begin{figure}[ht]\n" );
+    LATEX_PRINT( "\\centering\n" );
+    LATEX_PRINT( "\\includegraphics[width=0.8\\textwidth]{plot.png}\n" );
+    LATEX_PRINT( "\\caption{Графики}\n" );
+    LATEX_PRINT( "\\label{fig:my_image}\n" );
+    LATEX_PRINT( "\\end{figure}\n\n" );
+
+    fprintf( latex->tex_file, "\\end{document}\n" );
     free( latex->tex_path );
 
     int fclose_result = fclose( latex->tex_file );
@@ -74,7 +77,8 @@ void LatexDtor( Latex_t *latex ) {
         return;
     }
 
-    system( "pdflatex -synctex=1 -interaction=nonstopmode -output-directory=tex tex/main.tex" );
+    system( "pdflatex -synctex=1 -interaction=nonstopmode -output-directory=tex "
+            "tex/main.tex" );
 }
 
 void TreeDumpLatex( const Tree_t *tree, FILE *latex_file ) {
@@ -86,12 +90,17 @@ void TreeDumpLatex( const Tree_t *tree, FILE *latex_file ) {
 
 static int GetOperationPriority( OperationType op ) {
     switch ( op ) {
-        case OP_ADD: return 0;
-        case OP_SUB: return 1;
+        case OP_ADD:
+            return 0;
+        case OP_SUB:
+            return 1;
         case OP_MUL:
-        case OP_DIV: return 2;
-        case OP_POW: return 3;
-        default:     return 4;
+        case OP_DIV:
+            return 2;
+        case OP_POW:
+            return 3;
+        default:
+            return 4;
     }
 }
 
@@ -106,7 +115,7 @@ void NodeToLatex( const Node_t *node, FILE *latex_file, int parent_priority ) {
             if ( is_negative && parent_priority > 0 ) {
                 LATEX_PRINT( "(\\num{%g})", num );
             } else {
-                if ( CompareDoubleToDouble( num, 1e-8) == 0 ) {
+                if ( CompareDoubleToDouble( num, 1e-8 ) == 0 ) {
                     LATEX_PRINT( "0" );
                 } else {
                     LATEX_PRINT( "\\num{%g}", num );
@@ -162,7 +171,7 @@ void DifferentiatorAddOrigExpression( Differentiator_t *diff, int order ) {
 
     FILE *latex_file = diff->latex.tex_file;
 
-    LATEX_PRINT( "\\section{Функция и производные}\n" );
+    LATEX_PRINT( "\\section{Исследование функции}\n" );
 
     LatexFunction( diff, latex_file );
 
@@ -185,8 +194,6 @@ void DifferentiatorAddOrigExpression( Differentiator_t *diff, int order ) {
         LATEX_PRINT( "\\end{autobreak}\n" );
         LATEX_PRINT( "\\end{align*}\n" );
     }
-
-    fflush( latex_file );
 }
 
 static void LatexFunction( Differentiator_t *diff, FILE *latex_file ) {
@@ -218,7 +225,6 @@ void DifferentiatorAddEvaluation( Differentiator_t *diff, char name ) {
     FILE *latex_file = diff->latex.tex_file;
     LATEX_PRINT( "\\subsection{Вычисление значения функции в точке}\n" );
     LATEX_PRINT( "Для $%c = \\num{%g}$ получаем $f(%c) = \\num{%g}$\n\n", name, point, name, val );
-    fflush( latex_file );
 }
 
 #define PRINT_O                                                                                              \
@@ -262,31 +268,17 @@ void DifferentiatorAddTaylorSeries( Differentiator_t *diff, char var, int order 
 
 #undef PRINT_O
 
+
 static const char *joke_lines[] = {
-    [OP_ADD] = "О, чудо! Складываем два выражения — получаем новое магическое число!",
-    [OP_SUB] = "Вычитаем одно выражение из другого: пусть числа знают своё место!",
-    [OP_MUL] = "Умножаем, потому что два плюс два иногда всё-таки четыре, а иногда больше!",
-    [OP_DIV] = "Деление: смотрим, что осталось после дележа пирога.",
-    [OP_POW] = "Возводим в степень — космичеая энергия математических сил!",
-    [OP_LOG] = "Логарифм — тайное оружие математика, чтобы числа выглядели меньше.",
-    [OP_SIN] = "Синус танцует по оси X, как будто никто не смотрит.",
-    [OP_COS] = "Косинус всегда сдержан, но надёжно!",
-    [OP_TAN] = "Тангенс: наклон, который иногда слишком резок для школьников.",
-    [OP_CTAN] = "Котангенс — скрытая альтернатива тангенсу, чтобы путать друзей.",
-    [OP_SH] = "Гиперболический синус: когда обыскчный синус уже не достаточно эпичен.",
-    [OP_CH] = "Гиперболический косинус: красивое выражение для ленивых.",
-    [OP_ARCSIN] = "Арксинус возвращает синус на землю. Спокойно, всё под контролем.",
-    [OP_ARCCOS] = "Арккосинус: строгий, но справедливый математический судья.",
-    [OP_ARCTAN] = "Арктангенс: наклонная философия чисел.",
-    [OP_ARCCTAN] = "Арккотангенс: тайная магия, чтобы все удивились.",
-    [OP_ARSINH] = "Арксинус гиперболический — слегка драматично, но работает.",
-    [OP_ARCH] = "Арккосинус гиперболический: просто добавим немного эпичности.",
-    [OP_ARTANH] = "Арктангенс гиперболический — для тех, кто любит сложные выражения.",
-    [OP_LN] = "Натуральный логарифм: логика с приправой e!" };
+#define X( str, op_enum, prio, is_func, nargs, latex, joke ) [op_enum] = joke,
+    INIT_OPERATIONS( X )
+#undef X
+};
 
 const char *GetJokeLine( OperationType op ) {
     if ( op < 0 ) {
         return "Операция неизвестна, но всё равно весело!";
     }
-    return joke_lines[op];
+    const char *joke = joke_lines[op];
+    return joke ? joke : "Операция без шутки — как код без комментариев!";
 }

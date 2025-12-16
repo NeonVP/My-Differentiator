@@ -15,9 +15,6 @@ const size_t MAX_LEN_PATH = 256;
 
 #define OPERATIONS_ENUM( str, name, value, ... ) \
     name = value,
-    
-#define OPERATIONS_STRINGS( string, ... ) \
-    string,
 
 enum NodeType {
     NODE_UNKNOWN = -1,
@@ -33,10 +30,7 @@ enum OperationType {
     INIT_OPERATIONS( OPERATIONS_ENUM )
 };
 
-static const char* operations_txt[] = { INIT_OPERATIONS( OPERATIONS_STRINGS ) };
-
 #undef INIT_OP_ENUM
-#undef OPERATIONS_STRINGS
 
 struct NodeValue {
     enum NodeType type;

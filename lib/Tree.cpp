@@ -13,6 +13,12 @@
 #include "UtilsRW.h"
 
 const uint32_t fill_color = 0xb6b4b4;
+#define OPERATIONS_STRINGS( string, ... ) \
+    string,
+    
+static const char* operations_txt[] = { INIT_OPERATIONS( OPERATIONS_STRINGS ) };
+
+#undef OPERATIONS_STRINGS
 
 Tree_t *TreeCtor() {
     Tree_t *new_tree = (Tree_t *)calloc( 1, sizeof( *new_tree ) );

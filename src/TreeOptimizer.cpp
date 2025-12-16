@@ -279,7 +279,7 @@ static bool EvaluateConstant( Node_t *node, VarTable_t *var_table, double *resul
                     *result = left_val * right_val;
                     return true;
                 case OP_DIV:
-                    if ( fabs( right_val ) < 1e-15 )
+                    if ( CompareDoubleToDouble( right_val, 0.0 ) == 0 )
                         return false;
                     *result = left_val / right_val;
                     return true;

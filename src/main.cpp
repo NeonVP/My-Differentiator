@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #include "Differentiator.h"
 
 int main() {
@@ -13,13 +11,15 @@ int main() {
     DifferentiatiorDump( diff, DUMP_DIFFERENTIATED, "After optimization" );
 
     DifferentiatorAddEvaluation( diff, 'x' );
-    DifferentiatorAddTaylorSeries( diff, 'x', 7 );
 
-    // TODO: убрать поля дифференциатора как аргумента (передевать только дифференциатор)
-    DifferentiatorPlotFunctionAndTaylor( diff, 'x', diff->plot_x_min, diff->plot_x_max, diff->plot_y_min,
-                                         diff->plot_y_max, 250, "tex/plot.png" );
+    int extent = 0;
+    printf( "To what extent does Taylor count? " );
+    scanf( "%d", &extent );
+    DifferentiatorAddTaylorSeries( diff, 'x', extent );
+
+    DifferentiatorPlotFunctionAndTaylor( diff, 'x', 250, "tex/plot.png" );
 
     DifferentiatorDtor( &diff );
-    
+
     return 0;
 }

@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static bool GeneratePlotData( Differentiator_t *diff, char var, double x_min, double x_max, int n_points,
-                              double *out_y_min, double *out_y_max ) {
+static bool GeneratePlotData( Differentiator_t *diff, char var, int n_points, double *out_y_min,
+                              double *out_y_max ) {
     const char *func_data_file = "func_data.tmp";
     const char *taylor_data_file = "taylor_data.tmp";
 
@@ -22,10 +22,10 @@ static bool GeneratePlotData( Differentiator_t *diff, char var, double x_min, do
 
     double computed_y_min = INFINITY;
     double computed_y_max = -INFINITY;
-    double step = ( x_max - x_min ) / ( n_points - 1 );
+    double step = ( diff->plot_x_max - diff->plot_x_min ) / ( n_points - 1 );
 
     for ( int i = 0; i < n_points; i++ ) {
-        double x = x_min + i * step;
+        double x = diff->plot_x_min + i * step;
         VarTableSet( &diff->var_table, var, x );
 
         double y_func = EvaluateTree( diff->expr_tree, diff );
@@ -101,23 +101,25 @@ static bool WriteGnuplotScript( const char *output_image, char var, double x_min
         return false;
     }
 
-    fprintf(
-        f_gp,
-        "set terminal pngcairo enhanced size 800,600\n"
-        "set output '%s'\n"
-        "set title 'Функция, ряд Тейлора и касательная'\n"
-        "set xlabel '%c'\n"
-        "set ylabel 'f(x)'\n"
-        "set xrange [%.10g:%.10g]\n"
-        "set yrange [%.10g:%.10g]\n"
-        "set grid\n"
-        "f_tangent(x) = %.10g + %.10g * (x - %.10g)\n"
-        "plot "
-        "'func_data.tmp' with lines lw 2 lc rgb 'blue'   title 'Функция', \\\n"
-        "     'taylor_data.tmp' with lines lw 2 lc rgb 'red'    title 'Ряд Тейлора', \\\n"
-        "     f_tangent(x) with lines lw 2 lc rgb 'green' title 'Касательная', \\\n"
-        "     'tangent_point.tmp' using 1:2 with points pt 7 ps 2 lc rgb 'black' title 'Точка касания'\n",
-        output_image, var, x_min, x_max, y_min, y_max, f_x0, f_prime_x0, x0 );
+    fprintf( f_gp,
+             "set terminal pngcairo enhanced size 800,600\n"
+             "set output '%s'\n"
+             "set title 'Функция, ряд Тейлора и касательная'\n"
+             "set xlabel '%c'\n"
+             "set ylabel 'f(x)'\n"
+             "set xrange [%.10g:%.10g]\n"
+             "set yrange [%.10g:%.10g]\n"
+             "set grid\n"
+             "f_tangent(x) = %.10g + %.10g * (x - %.10g)\n"
+             "plot "
+             "'func_data.tmp' with lines lw 2 lc rgb 'blue'   title 'Функция', \\\n"
+             "     'taylor_data.tmp' with lines lw 2 lc rgb 'red'    title 'Ряд "
+             "Тейлора', \\\n"
+             "     f_tangent(x) with lines lw 2 lc rgb 'green' title 'Касательная', "
+             "\\\n"
+             "     'tangent_point.tmp' using 1:2 with points pt 7 ps 2 lc rgb 'black' "
+             "title 'Точка касания'\n",
+             output_image, var, x_min, x_max, y_min, y_max, f_x0, f_prime_x0, x0 );
 
     fclose( f_gp );
     return true;
@@ -130,17 +132,14 @@ static void CleanupTempFiles( void ) {
     remove( "plot_script.gp" );
 }
 
-void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var,
-                                          double x_min, double x_max,
-                                          double y_min, double y_max, 
-                                          int n_points,
+void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var, int n_points,
                                           const char *output_image ) {
     my_assert( diff, "Null pointer on `diff`" );
     my_assert( output_image, "Null pointer on `output_image`" );
     my_assert( n_points > 1, "n_points must be > 1" );
 
-    PRINT( "y_min = %g; y_max = %g", y_min, y_max );
-    PRINT( "x_min = %g; x_max = %g", x_min, x_max );
+    PRINT( "y_min = %g; y_max = %g", diff->plot_y_min, diff->plot_y_max );
+    PRINT( "x_min = %g; x_max = %g", diff->plot_x_min, diff->plot_x_max );
 
     double x0 = 0.0;
     if ( !VarTableGet( &diff->var_table, var, &x0 ) ) {
@@ -158,16 +157,17 @@ void DifferentiatorPlotFunctionAndTaylor( Differentiator_t *diff, char var,
     WriteTangentPoint( x0, f_x0 );
 
     double computed_y_min = 0, computed_y_max = 0;
-    if ( !GeneratePlotData( diff, var, x_min, x_max, n_points, &computed_y_min, &computed_y_max ) ) {
+    if ( !GeneratePlotData( diff, var, n_points, &computed_y_min, &computed_y_max ) ) {
         CleanupTempFiles();
         return;
     }
 
     double final_y_min = 0, final_y_max = 0;
-    DetermineYRange( y_min, y_max, computed_y_min, computed_y_max, &final_y_min, &final_y_max );
+    DetermineYRange( diff->plot_y_min, diff->plot_y_max, computed_y_min, computed_y_max, &final_y_min,
+                     &final_y_max );
 
-    if ( !WriteGnuplotScript( output_image, var, x_min, x_max, final_y_min, final_y_max, f_x0, f_prime_x0,
-                              x0 ) ) {
+    if ( !WriteGnuplotScript( output_image, var, diff->plot_x_min, diff->plot_x_max, final_y_min, final_y_max,
+                              f_x0, f_prime_x0, x0 ) ) {
         CleanupTempFiles();
         return;
     }
