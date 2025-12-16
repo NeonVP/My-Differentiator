@@ -12,10 +12,7 @@ int main() {
 
     DifferentiatorAddEvaluation( diff, 'x' );
 
-    int extent = 0;
-    printf( "To what extent does Taylor count? " );
-    scanf( "%d", &extent );
-    DifferentiatorAddTaylorSeries( diff, 'x', extent );
+    DifferentiatorAddTaylorSeries( diff, 'x', diff->extent );
 
     DifferentiatorPlotFunctionAndTaylor( diff, 'x', 250, "tex/plot.png" );
 

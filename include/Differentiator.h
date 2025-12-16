@@ -47,6 +47,9 @@ struct Differentiator_t {
   double plot_y_min;
   double plot_y_max;
 
+  double x_0;
+  int extent;
+
   struct Latex_t latex;
 
 #ifdef _DEBUG
@@ -63,8 +66,7 @@ Differentiator_t *DifferentiatorCtor(const char *expr_filename);
 void DifferentiatorDtor(Differentiator_t **diff);
 
 // EBNF
-Tree_t *ExpressionParser(char *buffer, double *x_min, double *x_max,
-                         double *y_min, double *y_max);
+Tree_t *ExpressionParser( Differentiator_t *diff );
 
 // Variable Table
 bool VarTableGet(VarTable_t *table, char name, double *value);

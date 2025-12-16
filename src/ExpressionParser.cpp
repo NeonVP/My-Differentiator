@@ -16,17 +16,12 @@ static Node_t *GetNumber( char **cur_pos, Node_t *parent, bool *error );
 static Node_t *GetFunction( char **cur_pos, Node_t *parent, bool *error );
 static Node_t *GetVariable( char **cur_pos, Node_t *parent, bool *error );
 
-Tree_t *ExpressionParser( char *buffer, double *x_min, double *x_max, double *y_min, double *y_max ) {
-    my_assert( buffer, "Null pointer on `buffer`" );
-
-    if ( x_min ) *x_min = -5.0;
-    if ( x_max ) *x_max = 5.0;
-    if ( y_min ) *y_min = -INFINITY; 
-    if ( y_max ) *y_max = INFINITY;
+Tree_t *ExpressionParser( Differentiator_t *diff ) {
+    my_assert( diff, "Null pointer on `diff`" );
 
     Tree_t *tree = TreeCtor();
 
-    char *current_position = buffer;
+    char *current_position = diff->expr_info.buffer;
     bool error = false;
     tree->root = GetGrammar( &current_position, NULL, &error );
 
@@ -40,15 +35,19 @@ Tree_t *ExpressionParser( char *buffer, double *x_min, double *x_max, double *y_
 
     SkipSpaces( &( current_position ) );
 
-    int scanf_result = sscanf( current_position, "%lf %lf & %lf %lf", x_min, x_max, y_min, y_max );
-    if ( scanf_result == 4 ) {
+    int scanf_result = sscanf( current_position, "%lf %lf & %lf %lf & %lf & %d",
+                               &(diff->plot_x_min), &(diff->plot_x_max), &(diff->plot_y_min), &(diff->plot_y_max),
+                               &(diff->x_0), &(diff->extent) );
+
+    if ( scanf_result == 6 ) {
         PRINT( "OK" );
     } else {
         PRINT( "NOT OK" );
     }
 
-    PRINT( "y_min = %g; y_max = %g", *y_min, *y_max );
-    PRINT( "x_min = %g; x_max = %g", *x_min, *x_max );
+    PRINT( "y_min = %g; y_max = %g", diff->plot_y_min, diff->plot_y_max );
+    PRINT( "x_min = %g; x_max = %g", diff->plot_x_min, diff->plot_x_max );
+    PRINT( "x_0 = %g; extent = %d", diff->x_0, diff->extent );
 
     PRINT( "The expression was considered correct." );
     return tree;

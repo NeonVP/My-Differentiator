@@ -1,7 +1,7 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
-enum IsFunction { // TODO: NonCustomOp, CustomOp
+enum IsFunction {
     NotFunction = 0,
     Function    = 1
 };
@@ -25,17 +25,17 @@ enum NumberOfParams {
            "Возводим в степень — космическая энергия математических сил!") \
     macros("log",     OP_LOG,     5,  Function,    TWO_ARGS, "\\log_{%e}(%e)", \
            "Логарифм — тайное оружие математика, чтобы числа выглядели меньше.") \
-    macros("sin",     OP_SIN,     6,  Function,    ONE_ARG,  "\\sin(%e)", \
+    macros("sin",     OP_SIN,     6,  Function,    ONE_ARG,  "\\sin %e ", \
            "Синус танцует по оси X, как будто никто не смотрит.") \
-    macros("cos",     OP_COS,     7,  Function,    ONE_ARG,  "\\cos(%e)", \
+    macros("cos",     OP_COS,     7,  Function,    ONE_ARG,  "\\cos %e ", \
            "Косинус всегда сдержан, но надёжно!") \
-    macros("tg",      OP_TAN,     8,  Function,    ONE_ARG,  "\\tan(%e)", \
+    macros("tg",      OP_TAN,     8,  Function,    ONE_ARG,  "\\tan %e ", \
            "Тангенс: наклон, который иногда слишком резок для школьников.") \
-    macros("ctg",     OP_CTAN,    9,  Function,    ONE_ARG,  "\\cot(%e)", \
+    macros("ctg",     OP_CTAN,    9,  Function,    ONE_ARG,  "\\cot %e ", \
            "Котангенс — скрытая альтернатива тангенсу, чтобы путать друзей.") \
-    macros("sh",      OP_SH,     10,  Function,    ONE_ARG,  "\\sinh(%e)", \
+    macros("sh",      OP_SH,     10,  Function,    ONE_ARG,  "\\sinh %e ", \
            "Гиперболический синус: когда обычный синус уже не достаточно эпичен.") \
-    macros("ch",      OP_CH,     11,  Function,    ONE_ARG,  "\\cosh(%e)", \
+    macros("ch",      OP_CH,     11,  Function,    ONE_ARG,  "\\cosh %e ", \
            "Гиперболический косинус: красивое выражение для ленивых.") \
     macros("arcsin",  OP_ARCSIN, 12,  Function,    ONE_ARG,  "\\arcsin(%e)", \
            "Арксинус возвращает синус на землю. Спокойно, всё под контролем.") \

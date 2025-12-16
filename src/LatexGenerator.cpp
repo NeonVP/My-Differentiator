@@ -216,6 +216,9 @@ void DifferentiatorAddEvaluation( Differentiator_t *diff, char name ) {
     my_assert( diff, "Null pointer on diff" );
 
     double point = 0;
+
+    VarTableSet( &( diff->var_table ), 'x', diff->x_0 );
+
     if ( !VarTableGet( &diff->var_table, name, &point ) ) {
         VarTableAskUser( &diff->var_table );
     }

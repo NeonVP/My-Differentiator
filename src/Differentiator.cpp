@@ -13,11 +13,15 @@
 #define NUM_( n ) NodeCreate( MakeNumber( n ), NULL )
 #define VAR_( v ) NodeCreate( MakeVariable( v ), NULL )
 
-#define ADD_( L, R ) MakeNode( OP_ADD, L, R )
-#define SUB_( L, R ) MakeNode( OP_SUB, L, R )
-#define MUL_( L, R ) MakeNode( OP_MUL, L, R )
-#define DIV_( L, R ) MakeNode( OP_DIV, L, R )
-#define POW_( L, R ) MakeNode( OP_POW, L, R )
+#define ADD_( L, R ) MakeNode( OP_ADD, ( L ), ( R ) )
+#define SUB_( L, R ) MakeNode( OP_SUB, ( L ), ( R ) )
+#define MUL_( L, R ) MakeNode( OP_MUL, ( L ), ( R ) )
+#define DIV_( L, R ) MakeNode( OP_DIV, ( L ), ( R ) )
+#define POW_( L, R ) MakeNode( OP_POW, ( L ), ( R ) )
+#define SIN_( L )    MakeNode( OP_SIN, ( L ), NULL )
+#define COS_( L )    MakeNode( OP_COS, ( L ), NULL )
+#define SH_(  L )    MakeNode( OP_SH,  ( L ), NULL )
+#define CH_(  L )    MakeNode( OP_CH,  ( L ), NULL )
 
 #define cL NodeCopy( node->left )
 #define cR NodeCopy( node->right )
@@ -39,29 +43,19 @@ Differentiator_t *DifferentiatorCtor( const char *expr_filename ) {
 
     char *buffer = ReadToBuffer( expr_filename );
 
-    double x_min = -5.0, x_max = 5.0;
-    double y_min = -INFINITY, y_max = INFINITY;
+    Differentiator_t *diff = (Differentiator_t *)calloc( 1, sizeof( Differentiator_t ) );
+    assert( diff && "Memory allocation error" );
 
-    Tree_t *expr_tree = ExpressionParser( buffer, &x_min, &x_max, &y_min, &y_max );
+    diff->expr_info.buffer = buffer;
+
+    Tree_t *expr_tree = ExpressionParser( diff );
     if ( !expr_tree ) {
         free( buffer );
         return NULL;
     }
 
-    Differentiator_t *diff = (Differentiator_t *)calloc( 1, sizeof( Differentiator_t ) );
-    if ( !diff ) {
-        TreeDtor( &expr_tree, NULL );
-        free( buffer );
-        return NULL;
-    }
-
     diff->expr_tree = expr_tree;
-    diff->expr_info.buffer = buffer;
 
-    diff->plot_x_min = x_min;
-    diff->plot_x_max = x_max;
-    diff->plot_y_min = y_min;
-    diff->plot_y_max = y_max;
 
     VarTableCtor( &( diff->var_table ), 5 );
 
@@ -272,7 +266,7 @@ void DifferentiatiorDump( Differentiator_t *diff, enum DumpMode mode, const char
 
     HandleDumpMode( diff, mode );
 
-    PRINT_HTML( "<img src=\"images/image%lu.dot.svg\" style=\"width:auto; height:400;\">\n",
+    PRINT_HTML( "<img src=\"images/image%lu.dot.svg\" style=\"width:auto; height:750;\">\n",
                 diff->logging.image_number++ );
 
     fflush( diff->logging.log_file );
@@ -443,23 +437,23 @@ static Node_t *DifferentiateNode( Node_t *node, char independent_var, Differenti
                     break;
 
                 case OP_SIN:
-                    result = MUL_( MakeNode( OP_COS, cL, NULL ), dL );
+                    result = MUL_( SIN_( cL ), dL );
                     break;
                 case OP_COS:
-                    result = MUL_( NUM_( -1 ), MUL_( MakeNode( OP_SIN, cL, NULL ), dL ) );
+                    result = MUL_( NUM_( -1 ), MUL_( SIN_( cL ), dL ) );
                     break;
                 case OP_TAN:
-                    result = DIV_( dL, POW_( MakeNode( OP_COS, cL, NULL ), NUM_( 2 ) ) );
+                    result = DIV_( dL, POW_( COS_( cL ), NUM_( 2 ) ) );
                     break;
 
                 case OP_CTAN:
-                    result = MUL_( NUM_( -1 ), DIV_( dL, POW_( MakeNode( OP_SIN, cL, NULL ), NUM_( 2 ) ) ) );
+                    result = MUL_( NUM_( -1 ), DIV_( dL, POW_( SIN_( cL ), NUM_( 2 ) ) ) );
                     break;
                 case OP_SH:
-                    result = MUL_( MakeNode( OP_CH, cL, NULL ), dL );
+                    result = MUL_( CH_( cL ), dL );
                     break;
                 case OP_CH:
-                    result = MUL_( MakeNode( OP_SH, cL, NULL ), dL );
+                    result = MUL_( SH_( cL ), dL );
                     break;
 
                 case OP_ARCSIN:
@@ -492,9 +486,9 @@ static Node_t *DifferentiateNode( Node_t *node, char independent_var, Differenti
             break;
     }
 
-    if ( node->value.type == NODE_OPERATION ) {
-        EXPLAIN;
-    }
+    // if ( node->value.type == NODE_OPERATION ) {
+    //     EXPLAIN;
+    // }
 
     return result;
 }
